@@ -33,6 +33,12 @@ class User(UserMixin, db.Model):
         passive_deletes=True
     )
 
+    logs = db.relationship(
+        "Logs",
+        back_populates="user",
+        passive_deletes=True
+    )
+
     def set_password(self, password):
         if password:
             self.password = generate_password_hash(password)
