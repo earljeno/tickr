@@ -224,10 +224,41 @@ table tr {
     max-width: 400px;
 }
 
+.dtr {
+    /* Add a subtle dot or grid pattern */
+    background-image: radial-gradient(#d3d3d3 1px, transparent 1px);
+    background-size: 10px 10px;
+    background-repeat: repeat;
+}
+
 @media print {
-    .watermark {
-        display: block !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+    /* Define the physical page size and margins */
+    @page {
+        size: Letter portrait;
+        margin: 15mm;
+    }
+
+    /* Prevent the document from being resized by user settings */
+    body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+    }
+
+    .dtr {
+        /* Force background elements to show */
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        
+        /* Strict sizing to fit A4 */
+        width: 100%;
+        height: auto;
+        border: 1px solid #000; /* Adds a clean boundary, hard to replicate in Word */
+        box-sizing: border-box;
+    }
+
+    /* Hide UI elements that shouldn't be printed */
+    .no-print {
+        display: none !important;
     }
 }

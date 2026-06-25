@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <meta charset="UTF-8">
@@ -7,9 +8,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dtr_report.css', _external=True) }}">
     <title>DTR Report {{ datetime(year, month, 1).strftime('%m') }}-{{ year }}</title>
 </head>
+
 <body>
 
-{% for pair in user_pairs %}
+    {% for pair in user_pairs %}
     <div class="container">
         {% for user in pair %}
         <div class="dtr">
@@ -20,13 +22,14 @@
             <div class="address">City of Koronadal, South Cotabato</div>
             <div class="dtr-title">DAILY TIME RECORD</div>
             <div class="name">
-                {{ user.last_name }}, {{ user.first_name }} {% if user.middle_name %} {{ user.middle_name }}. {% endif %}
+                {{ user.last_name }}, {{ user.first_name }} {% if user.middle_name %} {{ user.middle_name }}. {% endif
+                %}
             </div>
             <div class="subtitle">Name</div>
             <div class="month-label">
                 For the month of {{ datetime(year, month, 1).strftime('%B') }}, {{ year }}
             </div>
-            
+
             {% set uid = user.user_id|string %} {# move uid here (one-time per user) #}
             <table>
                 <tr>
@@ -35,36 +38,41 @@
                     <th colspan="2">TOTAL</th>
                 </tr>
                 <tr>
-                    <th>IN</th><th>OUT</th><th>IN</th><th>OUT</th><th>HH</th><th>MM</th>
+                    <th>IN</th>
+                    <th>OUT</th>
+                    <th>IN</th>
+                    <th>OUT</th>
+                    <th>HH</th>
+                    <th>MM</th>
                 </tr>
 
                 {% for day in range(1, total_days+1) %}
                 {% set date_key = "%04d-%02d-%02d" % (year, month, day) %}
                 {# lookup the specific day's shifts for this user #}
                 {% set shifts = attendance_dict.get(uid, {}).get(date_key, {
-                    "shift1": {"in": None, "out": None},
-                    "shift2": {"in": None, "out": None}
+                "shift1": {"in": None, "out": None},
+                "shift2": {"in": None, "out": None}
                 }) %}
                 {% set shift1 = shifts.get("shift1", {"in": None, "out": None}) %}
                 {% set shift2 = shifts.get("shift2", {"in": None, "out": None}) %}
-            
+
                 {% set daily_hours = 0 %}
                 {% set daily_minutes = 0 %}
 
                 {# Calculate shift 1 time #}
                 {% if shift1["in"] and shift1["out"] %}
-                    {% set shift1_seconds = (shift1["out"] - shift1["in"]).total_seconds() %}
-                    {% set daily_hours = (shift1_seconds // 3600) | int %}
-                    {% set daily_minutes = (shift1_seconds % 3600 // 60) | int %}
+                {% set shift1_seconds = (shift1["out"] - shift1["in"]).total_seconds() %}
+                {% set daily_hours = (shift1_seconds // 3600) | int %}
+                {% set daily_minutes = (shift1_seconds % 3600 // 60) | int %}
                 {% endif %}
-            
+
                 {# Calculate shift 2 time #}
                 {% if shift2["in"] and shift2["out"] %}
-                    {% set shift2_seconds = (shift2["out"] - shift2["in"]).total_seconds() %}
-                    {% set daily_hours = (daily_hours + (shift2_seconds // 3600)) | int %}
-                    {% set daily_minutes = (daily_minutes + (shift2_seconds % 3600 // 60)) | int %}
+                {% set shift2_seconds = (shift2["out"] - shift2["in"]).total_seconds() %}
+                {% set daily_hours = (daily_hours + (shift2_seconds // 3600)) | int %}
+                {% set daily_minutes = (daily_minutes + (shift2_seconds % 3600 // 60)) | int %}
                 {% endif %}
-            
+
                 {# Convert extra minutes into hours #}
                 {% set extra_hours = (daily_minutes // 60) | int %}
                 {% set daily_hours = (daily_hours + extra_hours) | int %}
@@ -79,7 +87,7 @@
                     <td>{{ daily_hours if daily_hours > 0 else '' }}</td>
                     <td>{{ daily_minutes if daily_minutes > 0 else '' }}</td>
                 </tr>
-            {% endfor %}            
+                {% endfor %}
             </table>
 
             <div class="total-hours">
@@ -102,6 +110,9 @@
                     <p class="underline">{{ unit_head }}</p>
                     <p>Unit Head</p>
                 </div>
+                <div class="ghost-watermark">
+                    OFFICIAL SYSTEM RECORD: {{ now.strftime('%m-%d-%Y %H:%M') }}
+                </div>
                 <div class="sysgen mt-4">
                     System Generated: {{ now.strftime('%m-%d-%Y %H:%M') }}
                 </div>
@@ -110,13 +121,14 @@
         {% endfor %}
     </div>
     <div style="page-break-after: always;"></div>
-{% endfor %}
+    {% endfor %}
 
-<script>
-    window.onload = function() {
-        window.print();
-    };
-</script>
+    <script>
+        window.onload = function () {
+            window.print();
+        };
+    </script>
 
 </body>
+
 </html>
