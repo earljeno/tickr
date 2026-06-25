@@ -212,12 +212,6 @@ table tr {
 
 
 @media print {
-    body {
-        background-image: radial-gradient(#d3d3d3 1px, transparent 1px);
-        background-size: 10px 10px;
-        background-repeat: repeat;
-    }
-    
     .dtr {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
