@@ -29,6 +29,44 @@ def systemLogEntry(action, details):
     except Exception as e:
         db.session.rollback()
 
+
+def normalize_philippine_phone(phone):
+    if not phone:
+        return ''
+
+    digits = re.sub(r"\D+", "", str(phone))
+    digits = re.sub(r"^00", "", digits)
+
+    if digits == '63':
+        return ''
+
+    if digits.startswith('63'):
+        pass
+    elif digits.startswith('0'):
+        digits = '63' + digits[1:]
+    else:
+        digits = '63' + digits
+
+    return '' if digits == '63' else digits
+
+
+def format_philippine_phone(phone):
+    digits = normalize_philippine_phone(phone)
+    if not digits:
+        return ''
+
+    rest = digits[2:]
+    if len(rest) == 10:
+        return f"+63 {rest[:3]} {rest[3:6]} {rest[6:]}"
+    if len(rest) == 9:
+        return f"+63 {rest[:1]} {rest[1:5]} {rest[5:]}"
+    if len(rest) == 8:
+        return f"+63 {rest[:3]} {rest[3:]}"
+    if len(rest) == 7:
+        return f"+63 {rest[:3]} {rest[3:]}"
+    return f"+{digits}"
+
+
 # GET ALL USER
 @api_bp.route('/users-data', methods=['GET'])
 @login_required
@@ -105,7 +143,7 @@ def add_user():
     last_name = data.get('lastName')
     middle_initial = data.get('middleInitial')
     role = data.get('role')
-    phone_number = data.get('phoneNumber')
+    phone_number = format_philippine_phone(data.get('phoneNumber'))
     laboratory = data.get('laboratory')
 
     # Check if user already exists
@@ -183,7 +221,7 @@ def update_user(user_id):
     middle_initial = data.get('middleInitial')
     if middle_initial is not None:
         user.middle_name = middle_initial.upper()
-    user.phone_number = data.get('phoneNumber', user.phone_number)
+    user.phone_number = format_philippine_phone(data.get('phoneNumber')) or user.phone_number
     user.laboratory = data.get('laboratory', user.laboratory)
     user.role = data.get('role', user.role)
     user.status = data.get('status', user.status)

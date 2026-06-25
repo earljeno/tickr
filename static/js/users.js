@@ -120,6 +120,22 @@ function formatPhone(phone) {
     return phone ? formatPhilippinePhone(phone) : '-';
 }
 
+function formatPhoneInputValue(input) {
+    const value = (input.value || '').trim();
+    if (!value) {
+        input.value = '';
+        return;
+    }
+
+    const normalized = normalizePhilippinePhone(value);
+    if (!normalized) {
+        input.value = '';
+        return;
+    }
+
+    input.value = formatPhilippinePhone(normalized);
+}
+
 function formatLaboratory(lab) {
     return lab ? `Room ${lab}` : '-';
 }
@@ -233,6 +249,16 @@ function setupListeners() {
         loadUsers();
     });
 
+    const addPhoneInput = document.getElementById('addPhone');
+    const editPhoneInput = document.getElementById('editPhone');
+
+    if (addPhoneInput) {
+        addPhoneInput.addEventListener('blur', () => formatPhoneInputValue(addPhoneInput));
+    }
+    if (editPhoneInput) {
+        editPhoneInput.addEventListener('blur', () => formatPhoneInputValue(editPhoneInput));
+    }
+
     document.getElementById('statusFilter').addEventListener('change', applyFilters);
     document.getElementById('roleFilter').addEventListener('change', applyFilters);
     document.getElementById('pageSizeSelect').addEventListener('change', () => {
@@ -281,8 +307,10 @@ function setupListeners() {
                     document.getElementById('editFirstName').value = user.first_name;
                     document.getElementById('editLastName').value = user.last_name;
                     document.getElementById('editMiddleInitial').value = user.middle_name || '';
+                    const editPhoneInput = document.getElementById('editPhone');
+                    editPhoneInput.value = user.phone_number || '';
+                    formatPhoneInputValue(editPhoneInput);
                     document.getElementById('editRole').value = user.role;
-                    document.getElementById('editPhone').value = user.phone_number || '';
                     document.getElementById('editLaboratory').value = user.laboratory || '';
                     document.getElementById('editStatus').value = user.status;
 
@@ -348,7 +376,10 @@ function setupListeners() {
             return;
         }
 
-        const editPhoneValue = document.getElementById('editPhone').value.trim();
+        const editPhoneInput = document.getElementById('editPhone');
+        formatPhoneInputValue(editPhoneInput);
+        const editPhoneValue = editPhoneInput.value.trim();
+
         const userData = {
             userId: document.getElementById('editUserId').value,
             firstName: document.getElementById('editFirstName').value,
@@ -392,7 +423,10 @@ function setupListeners() {
             return;
         }
 
-        const addPhoneValue = document.getElementById('addPhone').value.trim();
+        const addPhoneInput = document.getElementById('addPhone');
+        formatPhoneInputValue(addPhoneInput);
+        const addPhoneValue = addPhoneInput.value.trim();
+
         const userData = {
             userId: document.getElementById('addUserId').value,
             firstName: document.getElementById('addFirstName').value,
