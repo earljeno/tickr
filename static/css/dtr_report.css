@@ -210,21 +210,19 @@ table tr {
     max-width: 400px;
 }
 
-body {
-    background-image: radial-gradient(#d3d3d3 1px, transparent 1px);
-    background-size: 10px 10px;
-    background-repeat: repeat;
-}
 
 @media print {
-    .dtr {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        
+    body {
         background-image: radial-gradient(#d3d3d3 1px, transparent 1px);
         background-size: 10px 10px;
         background-repeat: repeat;
     }
+    
+    .dtr {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
     .watermark {
         display: block !important;
         -webkit-print-color-adjust: exact;
