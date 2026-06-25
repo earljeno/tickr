@@ -25,11 +25,47 @@
             </div>
             <div class="col-md-6">
                 <div class="page-actions d-flex justify-content-md-end gap-3 mt-3 mt-md-0">
-                    <div class="search-container flex-grow-1 flex-md-grow-0" hidden>
-                        <input type="text" class="form-control" placeholder="Search users..." id="userSearch" />
-                    </div>
                     <button class="btn btn-success add-user-btn" data-bs-toggle="modal" data-bs-target="#addUserModal">
                         <i class="fas fa-plus me-2"></i>Add User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="content-card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Search users, phone, laboratory..."
+                        id="userSearch" />
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="roleFilter">
+                        <option value="">All Roles</option>
+                        <option value="admin">Admin</option>
+                        <option value="gia">GIA</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="pageSizeSelect">
+                        <option value="10" selected>10 per page</option>
+                        <option value="25">25 per page</option>
+                        <option value="50">50 per page</option>
+                        <option value="100">100 per page</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" id="clearFilters">
+                        <i class="fas fa-times me-2"></i>Clear Filters
                     </button>
                 </div>
             </div>
@@ -54,9 +90,10 @@
                     <thead class="table-light">
                         <tr>
                             <th class="ps-4">User</th>
+                            <th class="text-center">Phone</th>
+                            <th class="text-center">Laboratory</th>
                             <th class="text-center">Role</th>
                             <th class="text-center">Status</th>
-                            <!-- <th class="text-center">Last Login</th> -->
                             <th class="text-center">Actions</th>
                         </tr>
                     </thead>
@@ -66,20 +103,12 @@
                 </table>
             </div>
         </div>
-        <!-- <div class="card-footer d-flex justify-content-between align-items-center" aria-hidden=>
-            <div class="showing-info">Showing 1-5 of 248 users</div>
-            <nav>
-                <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item disabled">
-                        <span class="page-link">Previous</span>
-                    </li>
-                    <li class="page-item active"><span class="page-link">1</span></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item"><a class="page-link" href="#">Next</a></li>
-                </ul>
+        <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+            <div class="showing-info" id="usersShowingInfo">Showing 0-0 of 0 users</div>
+            <nav aria-label="Users pagination">
+                <ul class="pagination pagination-sm mb-0" id="usersPagination"></ul>
             </nav>
-        </div> -->
+        </div>
     </div>
 
     <!-- Add User Modal -->
@@ -103,6 +132,23 @@
                                     <option value="">Select Role</option>
                                     <option value="admin">Admin</option>
                                     <option value="gia">GIA</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="addPhone" class="form-label">Phone Number</label>
+                                <input type="tel" inputmode="tel" class="form-control" id="addPhone" />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="addLaboratory" class="form-label">Laboratory Assigned</label>
+                                <select class="form-select" id="addLaboratory">
+                                    <option value="">Select Laboratory</option>
+                                    <option value="2001">Room 2001</option>
+                                    <option value="2003">Room 2003</option>
+                                    <option value="2005">Room 2005</option>
+                                    <option value="3001">Room 3001</option>
+                                    <option value="3005">Room 3005</option>
+                                    <option value="3013">Room 3013</option>
+                                    <option value="3017">Room 3017</option>
                                 </select>
                             </div>
                             <div class="col-md-8">
@@ -154,6 +200,23 @@
                                     <option value="">Select Role</option>
                                     <option value="admin">Admin</option>
                                     <option value="gia">GIA</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editPhone" class="form-label">Phone Number</label>
+                                <input type="tel" inputmode="tel" class="form-control" id="editPhone" />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editLaboratory" class="form-label">Laboratory Assigned</label>
+                                <select class="form-select" id="editLaboratory">
+                                    <option value="">Select Laboratory</option>
+                                    <option value="2001">Room 2001</option>
+                                    <option value="2003">Room 2003</option>
+                                    <option value="2005">Room 2005</option>
+                                    <option value="3001">Room 3001</option>
+                                    <option value="3005">Room 3005</option>
+                                    <option value="3013">Room 3013</option>
+                                    <option value="3017">Room 3017</option>
                                 </select>
                             </div>
                             <div class="col-md-8">

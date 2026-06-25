@@ -17,9 +17,6 @@ instance/
 # Flask session files
 flask_session/
 
-# Migrations (optional, keep if you want)
-migrations/
-
 # IDE settings
 .vscode/
 *.idea/

@@ -1,10 +1,11 @@
-from flask import (Blueprint, request, flash, 
-                   send_file, request, jsonify)
+from flask import Blueprint, request, flash, send_file, jsonify
 from flask_login import login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 import io, traceback
+import re
 import pandas as pd
 from datetime import datetime, date, timedelta, time
+from sqlalchemy import func, or_
 from models.models import db, User, Attendance, Schedule, GlobalSettings, Logs
 from routes.gia import WHITELIST, SPECIAL_IDS, get_client_ip
 # from flask_apscheduler import APScheduler
@@ -33,19 +34,59 @@ def systemLogEntry(action, details):
 @login_required
 def get_data():
     if current_user.role not in ["superadmin", "admin"]:
-        flash("Access Denied!", "danger")
         return jsonify({'success': False, 'error': 'Access Denied'}), 400
-    
-    users = User.query.filter(User.role != "superadmin").order_by(User.role, User.first_name).all()
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '', type=str).strip()
+    status = request.args.get('status', '', type=str).strip()
+    role = request.args.get('role', '', type=str).strip()
+
+    page = max(page, 1)
+    per_page = max(1, min(per_page, 100))
+
+    query = User.query.filter(User.role != "superadmin")
+
+    if status:
+        query = query.filter(User.status == status)
+    if role:
+        query = query.filter(User.role == role)
+    if search:
+        search_pattern = f"%{search}%"
+        phone_digits = re.sub(r"\D+", "", search)
+        filters = [
+            User.first_name.ilike(search_pattern),
+            User.last_name.ilike(search_pattern),
+            User.user_id.ilike(search_pattern),
+            User.phone_number.ilike(search_pattern),
+            User.laboratory.ilike(search_pattern)
+        ]
+        if phone_digits:
+            filters.append(User.phone_number.ilike(f"%{phone_digits}%"))
+            if phone_digits.startswith('0'):
+                local_digits = phone_digits[1:]
+                filters.append(User.phone_number.ilike(f"%63{local_digits}%"))
+            elif phone_digits.startswith('63'):
+                filters.append(User.phone_number.ilike(f"%{phone_digits[2:]}%"))
+        query = query.filter(or_(*filters))
+
+    total = query.count()
+    users = query.order_by(User.role, User.first_name).offset((page - 1) * per_page).limit(per_page).all()
+
     users_list = []
     for user in users:
-        data = user.__dict__.copy()
-        data.pop('_sa_instance_state', None)
-        data.pop('password', None)
-        data.pop('id', None)
-        users_list.append(data)
-        
-    return jsonify(users_list)
+        users_list.append({
+            'user_id': user.user_id,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'middle_name': user.middle_name,
+            'role': user.role,
+            'status': user.status,
+            'phone_number': user.phone_number or '',
+            'laboratory': user.laboratory or ''
+        })
+
+    return jsonify({'success': True, 'users': users_list, 'total': total, 'page': page, 'per_page': per_page})
 
 # ADD NEW USER
 @api_bp.route('/add-user', methods=['POST'])
@@ -64,9 +105,11 @@ def add_user():
     last_name = data.get('lastName')
     middle_initial = data.get('middleInitial')
     role = data.get('role')
+    phone_number = data.get('phoneNumber')
+    laboratory = data.get('laboratory')
 
     # Check if user already exists
-    if User.query.get(user_id):
+    if User.query.filter_by(user_id=user_id).first():
         return jsonify({'success': False, 'error': 'User ID already exists'}), 400
 
     # Create and save new user
@@ -74,7 +117,9 @@ def add_user():
         user_id=user_id,
         first_name=first_name,
         last_name=last_name,
-        middle_name=middle_initial.upper(),
+        phone_number=phone_number,
+        laboratory=laboratory,
+        middle_name=middle_initial.upper() if middle_initial else None,
         role=role,
         password=generate_password_hash('admin123')
     )
@@ -105,10 +150,12 @@ def get_user(user_id):
     user_data = {
         'user_id': user.user_id,
         'first_name': user.first_name,
-        'last_name': user.last_name, 
+        'last_name': user.last_name,
         'middle_name': user.middle_name[0] if user.middle_name else '',
-        'role_id': user.role,
+        'role': user.role,
         'status': user.status,
+        'phone_number': user.phone_number or '',
+        'laboratory': user.laboratory or ''
     }
 
     return jsonify(user_data)
@@ -133,10 +180,13 @@ def update_user(user_id):
     user.user_id = data.get('userId', user.user_id)
     user.first_name = data.get('firstName', user.first_name)
     user.last_name = data.get('lastName', user.last_name)
-    user.middle_name = data.get('middleInitial', user.middle_name).upper()
+    middle_initial = data.get('middleInitial')
+    if middle_initial is not None:
+        user.middle_name = middle_initial.upper()
+    user.phone_number = data.get('phoneNumber', user.phone_number)
+    user.laboratory = data.get('laboratory', user.laboratory)
     user.role = data.get('role', user.role)
     user.status = data.get('status', user.status)
-    user.role = data.get('role', user.role)
 
     try:
         db.session.commit()
@@ -202,6 +252,8 @@ def export_users():
         'Last Name': [user.last_name for user in users],
         'First Name': [user.first_name for user in users],
         'Middle Initial': [user.middle_name[0].upper() if user.middle_name else '' for user in users],
+        'Phone Number': [user.phone_number for user in users],
+        'Laboratory': [user.laboratory for user in users]
     }
 
     df = pd.DataFrame(data)
@@ -425,17 +477,43 @@ def get_logs():
 
     from_date = request.args.get("from")
     to_date = request.args.get("to")
+    user_filter = request.args.get("user", "", type=str)
+    action_filter = request.args.get("action", "", type=str)
+    search_term = request.args.get("search", "", type=str)
     page = request.args.get("page", 1, type=int)       # current page
     per_page = request.args.get("per_page", 20, type=int)  # items per page
 
     from_date_obj = datetime.strptime(from_date, "%Y-%m-%d")
     to_date_obj = datetime.strptime(to_date, "%Y-%m-%d") + timedelta(days=1) - timedelta(seconds=1)
 
-    pagination = Logs.query.filter(
+    query = Logs.query.outerjoin(User).filter(
         Logs.user_id != 'superadmin',
         Logs.timestamp >= from_date_obj,
         Logs.timestamp <= to_date_obj
-    ).order_by(Logs.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    )
+
+    if user_filter:
+        user_term = user_filter.strip().lower()
+        query = query.filter(or_(
+            func.lower(User.first_name).contains(user_term),
+            func.lower(User.last_name).contains(user_term),
+            func.lower(User.role).contains(user_term)
+        ))
+
+    if action_filter:
+        query = query.filter(func.lower(Logs.action) == action_filter.strip().lower())
+
+    if search_term:
+        search_value = f"%{search_term.strip().lower()}%"
+        query = query.filter(or_(
+            func.lower(Logs.action).contains(search_term.strip().lower()),
+            func.lower(Logs.details).contains(search_term.strip().lower()),
+            func.lower(User.first_name).contains(search_term.strip().lower()),
+            func.lower(User.last_name).contains(search_term.strip().lower()),
+            func.lower(User.role).contains(search_term.strip().lower())
+        ))
+
+    pagination = query.order_by(Logs.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     logs_list = [serialize_logs(l) for l in pagination.items]
 

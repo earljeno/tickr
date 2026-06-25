@@ -3,54 +3,98 @@ function initAuditLogs() {
     setupSearch();
     setupTableInteractions();
     addInteractiveEffects();
+    loadLogs(1);
 }
 
 let currentPage = 1;
 const perPage = 8;
 
+const defaultFilterValues = {
+    fromDate: document.getElementById('fromDate')?.value || '',
+    toDate: document.getElementById('toDate')?.value || ''
+};
+
 function loadLogs(page = 1) {
     currentPage = page;
-    const fromDate = document.getElementById("fromDate").value;
-    const toDate = document.getElementById("toDate").value;
+    const fromDate = document.getElementById('fromDate').value;
+    const toDate = document.getElementById('toDate').value;
+    const userFilter = document.getElementById('userFilter').value.trim();
+    const actionFilter = document.getElementById('actionFilter').value.trim();
+    const searchTerm = document.getElementById('searchLogs').value.trim();
 
-    fetch(`/api/get-logs?from=${fromDate}&to=${toDate}&page=${page}&per_page=${perPage}`)
+    const params = new URLSearchParams({
+        from: fromDate,
+        to: toDate,
+        page,
+        per_page: perPage
+    });
+
+    if (userFilter) params.set('user', userFilter);
+    if (actionFilter) params.set('action', actionFilter);
+    if (searchTerm) params.set('search', searchTerm);
+
+    const tbody = document.getElementById('auditLogsTableBody');
+    const showingInfo = document.querySelector('.showing-info');
+    showingInfo.textContent = 'Loading audit logs...';
+
+    fetch(`/api/get-logs?${params.toString()}`)
         .then(res => {
             if (!res.ok) throw new Error(`Server responded with ${res.status}`);
             return res.json();
         })
         .then(data => {
-            const tbody = document.getElementById('auditLogsTableBody');
             tbody.innerHTML = '';
 
-            data.logs.forEach(log => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>
-                        <div class="timestamp">
-                            <div class="fw-medium">${log.date}</div>
-                            <small class="text-muted">${log.time}</small>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="user-info">
-                            <div class="fw-medium">${log.full_name}</div>
-                            <small class="text-muted">${log.role}</small>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="action-badge ${log.action.toLowerCase()}">${log.action}</span>
-                    </td>
-                    <td>
-                        <div class="details-text">${log.details}</div>
-                    </td>
-                    <td>
-                        <small class="text-muted">${log.ip}</small>
-                    </td>
+            if (!data.logs || data.logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            No audit logs match the current filters.
+                        </td>
+                    </tr>
                 `;
-                tbody.appendChild(tr);
-            });
+            } else {
+                data.logs.forEach(log => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                            <div class="timestamp">
+                                <div class="fw-medium">${log.date}</div>
+                                <small class="text-muted">${log.time}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="user-info">
+                                <div class="fw-medium">${log.full_name}</div>
+                                <small class="text-muted">${log.role}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="action-badge ${log.action.toLowerCase()}">${log.action}</span>
+                        </td>
+                        <td>
+                            <div class="details-text">${log.details || ''}</div>
+                        </td>
+                        <td>
+                            <small class="text-muted">${log.ip || ''}</small>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
 
             renderPagination(data.page, data.pages, data.total);
+        })
+        .catch(error => {
+            console.error('Failed to load audit logs:', error);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-danger">
+                        Unable to load audit logs. Please refresh or try again later.
+                    </td>
+                </tr>
+            `;
+            showingInfo.textContent = 'Unable to load audit logs.';
         });
 }
 
@@ -61,128 +105,61 @@ function setupFilters() {
     const userFilter = document.getElementById('userFilter');
     const actionFilter = document.getElementById('actionFilter');
     const resetButton = document.getElementById('resetFilters');
-    
-    // Auto-filter when any filter changes
-    fromDate.addEventListener('change', applyFilters);
-    toDate.addEventListener('change', applyFilters);
-    userFilter.addEventListener('change', applyFilters);
-    actionFilter.addEventListener('change', applyFilters);
-    
-    resetButton.addEventListener('click', function() {
+
+    [fromDate, toDate, userFilter, actionFilter].forEach(control => {
+        control?.addEventListener('change', () => loadLogs(1));
+    });
+
+    resetButton?.addEventListener('click', function(event) {
+        event.preventDefault();
         resetFilters();
-        
-        // Visual feedback
+        loadLogs(1);
+
         this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Resetting...';
         this.disabled = true;
-        
+
         setTimeout(() => {
-            this.innerHTML = '<i class="fas fa-undo me-1"></i>Reset';
+            this.innerHTML = '<i class="fas fa-undo me-1"></i>Clear';
             this.disabled = false;
         }, 500);
     });
 }
 
-// Apply filters to the audit logs
 function applyFilters() {
-    const fromDate = document.getElementById('fromDate').value;
-    const toDate = document.getElementById('toDate').value;
-    const userFilter = document.getElementById('userFilter').value;
-    const actionFilter = document.getElementById('actionFilter').value;
-    const searchTerm = document.getElementById('searchLogs').value.toLowerCase();
-    
-    const rows = document.querySelectorAll('#auditLogsTableBody tr');
-    let visibleCount = 0;
-    
-    rows.forEach(row => {
-        const timestamp = row.querySelector('.timestamp .fw-medium').textContent;
-        const user = row.querySelector('.user-info .fw-medium').textContent.toLowerCase();
-        const userRole = row.querySelector('.user-info .text-muted').textContent.toLowerCase();
-        const action = row.querySelector('.action-badge').textContent.toLowerCase();
-        // const affectedData = row.querySelector('.affected-data .fw-medium').textContent.toLowerCase();
-        const details = row.querySelector('.details-text').textContent.toLowerCase();
-        
-        // Date filtering (simplified for demo)
-        let matchesDate = true;
-        if (fromDate || toDate) {
-            // In real implementation, would parse and compare dates
-            matchesDate = true;
-        }
-        
-        // User filtering
-        const matchesUser = !userFilter || 
-            user.includes(userFilter.toLowerCase()) || 
-            userRole.includes(userFilter.toLowerCase());
-        
-        // Action filtering
-        const matchesAction = !actionFilter || action === actionFilter;
-        
-        // Search filtering
-        const matchesSearch = !searchTerm || 
-            user.includes(searchTerm) ||
-            userRole.includes(searchTerm) ||
-            action.includes(searchTerm) ||
-            // affectedData.includes(searchTerm) ||
-            details.includes(searchTerm);
-        
-        if (matchesDate && matchesUser && matchesAction && matchesSearch) {
-            row.style.display = '';
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-        }
-    });
-    
-    // Update showing info
-    const showingInfo = document.querySelector('.showing-info');
-    showingInfo.textContent = `Showing 1-${visibleCount} of 1,247 audit log entries`;
-    
-    console.log(`Applied filters - showing ${visibleCount} entries`);
+    loadLogs(1);
 }
 
 // Reset all filters
 function resetFilters() {
-    document.getElementById('fromDate').value = '2025-01-01';
-    document.getElementById('toDate').value = '2025-01-15';
+    const fromDateInput = document.getElementById('fromDate');
+    const toDateInput = document.getElementById('toDate');
+
+    if (fromDateInput) fromDateInput.value = defaultFilterValues.fromDate;
+    if (toDateInput) toDateInput.value = defaultFilterValues.toDate;
     document.getElementById('userFilter').value = '';
     document.getElementById('actionFilter').value = '';
     document.getElementById('searchLogs').value = '';
-    
-    // Show all rows
-    const rows = document.querySelectorAll('#auditLogsTableBody tr');
-    rows.forEach(row => {
-        row.style.display = '';
-    });
-    
-    // Reset showing info
+
     const showingInfo = document.querySelector('.showing-info');
-    showingInfo.textContent = 'Showing 1-8 of 1,247 audit log entries';
-    
+    showingInfo.textContent = 'Loading audit logs...';
+
     console.log('Filters reset');
 }
 
 // Setup search functionality
 function setupSearch() {
     const searchInput = document.getElementById('searchLogs');
-    
-    searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.trim().toLowerCase();
-        
-        // Apply filters automatically
-        applyFilters();
-        
-        // Visual feedback
-        if (searchTerm.length > 0) {
-            this.style.borderColor = '#10b981';
-            setTimeout(() => {
-                this.style.borderColor = '#d1d5db';
-            }, 1000);
-        }
+    let debounceTimer;
+
+    searchInput?.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => loadLogs(1), 300);
     });
-    
-    // Search on Enter key
-    searchInput.addEventListener('keypress', function(e) {
+
+    searchInput?.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-            applyFilters();
+            e.preventDefault();
+            loadLogs(1);
         }
     });
 }
@@ -191,7 +168,7 @@ function setupSearch() {
 function setupTableInteractions() {
     // Export logs button
     const exportBtn = document.querySelector('.btn-outline-primary');
-    exportBtn.addEventListener('click', function() {
+    exportBtn?.addEventListener('click', function() {
         this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Exporting...';
         this.disabled = true;
         
@@ -204,87 +181,68 @@ function setupTableInteractions() {
     
     // Refresh logs button
     const refreshBtn = document.getElementById('refreshLogs');
-    refreshBtn.addEventListener('click', function() {
+    refreshBtn?.addEventListener('click', function() {
         this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...';
         this.disabled = true;
         
         setTimeout(() => {
-            loadLogs();
+            loadLogs(1);
             this.innerHTML = '<i class="fas fa-sync me-1"></i>Refresh';
             this.disabled = false;
             console.log('Audit logs refreshed');
         }, 1500);
     });
-    
+
     // Row click for details (optional)
-    const tableRows = document.querySelectorAll('#auditLogsTableBody tr');
-    tableRows.forEach(row => {
-        row.addEventListener('click', function() {
-            const user = this.querySelector('.user-info .fw-medium').textContent;
-            const action = this.querySelector('.action-badge').textContent;
-            // const affectedData = this.querySelector('.affected-data .fw-medium').textContent;
-            
-            // console.log(`Clicked log entry: ${user} ${action} ${affectedData}`);
-            
-            // Could open a modal with detailed information
-            // showLogDetails(logData);
-        });
+    const tbody = document.getElementById('auditLogsTableBody');
+    tbody.addEventListener('click', function(event) {
+        const row = event.target.closest('tr');
+        if (!row) return;
+
+        const user = row.querySelector('.user-info .fw-medium')?.textContent || 'Unknown';
+        const action = row.querySelector('.action-badge')?.textContent || 'Unknown';
+        console.log(`Clicked log entry: ${user} ${action}`);
     });
 }
 
 // Add interactive effects
 function addInteractiveEffects() {
-    // Table row hover effects
-    const tableRows = document.querySelectorAll('#auditLogsTableBody tr');
-    tableRows.forEach(row => {
-        row.addEventListener('mouseenter', function() {
-            this.style.backgroundColor = '#f8f9fa';
-            this.style.cursor = 'pointer';
-        });
-        
-        row.addEventListener('mouseleave', function() {
-            this.style.backgroundColor = '';
-            this.style.cursor = '';
-        });
+    const tbody = document.getElementById('auditLogsTableBody');
+    tbody?.addEventListener('mouseover', function(event) {
+        const row = event.target.closest('tr');
+        if (row) {
+            row.style.backgroundColor = '#f8f9fa';
+            row.style.cursor = 'pointer';
+        }
     });
-    
-    // Action badge hover effects
-    const actionBadges = document.querySelectorAll('.action-badge');
-    actionBadges.forEach(badge => {
-        badge.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.05)';
-        });
-        
-        badge.addEventListener('mouseleave', function() {
-            this.style.transform = '';
-        });
+
+    tbody?.addEventListener('mouseout', function(event) {
+        const row = event.target.closest('tr');
+        if (row) {
+            row.style.backgroundColor = '';
+            row.style.cursor = '';
+        }
+    });
+
+    const card = document.querySelector('.content-card');
+    card?.addEventListener('mouseover', function(event) {
+        const badge = event.target.closest('.action-badge');
+        if (badge) badge.style.transform = 'scale(1.05)';
+    });
+
+    card?.addEventListener('mouseout', function(event) {
+        const badge = event.target.closest('.action-badge');
+        if (badge) badge.style.transform = '';
     });
 }
-
-// Auto-refresh functionality (optional)
-function setupAutoRefresh() {
-    // Auto-refresh every 30 seconds
-    setInterval(() => {
-        loadLogs();
-        console.log('Auto-refreshing audit logs...');
-    }, 30000);
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    loadLogs();
-    initAuditLogs();
-});
 
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
-    // Ctrl/Cmd + F to focus search
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
-        document.getElementById('searchLogs').focus();
+        document.getElementById('searchLogs')?.focus();
     }
-    
-    // Escape to clear search
+
     if (e.key === 'Escape') {
         const searchInput = document.getElementById('searchLogs');
         if (document.activeElement === searchInput) {
@@ -293,11 +251,10 @@ document.addEventListener('keydown', function(e) {
             searchInput.blur();
         }
     }
-    
-    // Ctrl/Cmd + R to refresh (prevent default browser refresh)
+
     if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
         e.preventDefault();
-        document.getElementById('refreshLogs').click();
+        document.getElementById('refreshLogs')?.click();
     }
 });
 
@@ -307,37 +264,30 @@ document.addEventListener('visibilitychange', function() {
         console.log('Page hidden - pausing auto-refresh');
     } else {
         console.log('Page visible - resuming auto-refresh');
-        // Could trigger immediate refresh when page becomes visible
-    }
-});
-
-fromDate = document.getElementById("fromDate");
-toDate = document.getElementById("toDate");
-
-[fromDate, toDate].forEach(input => {
-    if (input) {
-        input.addEventListener("change", () => {
-            loadLogs();
-        });
     }
 });
 
 function renderPagination(current, totalPages, totalItems) {
-    const container = document.querySelector(".pagination");
-    const showingInfo = document.querySelector(".showing-info");
+    const container = document.querySelector('.pagination');
+    const showingInfo = document.querySelector('.showing-info');
 
-    showingInfo.textContent = `Showing ${((current-1)*perPage+1)}-${Math.min(current*perPage, totalItems)} of ${totalItems} audit log entries`;
+    if (totalItems === 0) {
+        showingInfo.textContent = 'Showing 0-0 of 0 audit log entries';
+    } else {
+        const pageStart = (current - 1) * perPage + 1;
+        const pageEnd = Math.min(current * perPage, totalItems);
+        showingInfo.textContent = `Showing ${pageStart}-${pageEnd} of ${totalItems} audit log entries`;
+    }
+
     container.innerHTML = '';
 
-    // Previous Button (Same as your code)
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${current === 1 ? 'disabled' : ''}`;
     prevLi.innerHTML = `<a class="page-link" href="#">Previous</a>`;
     prevLi.addEventListener('click', e => { e.preventDefault(); if (current > 1) loadLogs(current - 1); });
     container.appendChild(prevLi);
 
-    // Dynamic Page Numbers (Logic to show max 5 buttons)
-    const windowSize = 2; // Number of pages before/after current
+    const windowSize = 2;
     let start = Math.max(1, current - windowSize);
     let end = Math.min(totalPages, current + windowSize);
 
@@ -349,10 +299,12 @@ function renderPagination(current, totalPages, totalItems) {
         container.appendChild(li);
     }
 
-    // Next Button (Same as your code)
     const nextLi = document.createElement('li');
-    nextLi.className = `page-item ${current === totalPages ? 'disabled' : ''}`;
+    const disableNext = totalPages <= 1 || current >= totalPages;
+    nextLi.className = `page-item ${disableNext ? 'disabled' : ''}`;
     nextLi.innerHTML = `<a class="page-link" href="#">Next</a>`;
-    nextLi.addEventListener('click', e => { e.preventDefault(); if (current < totalPages) loadLogs(current + 1); });
+    nextLi.addEventListener('click', e => { e.preventDefault(); if (!disableNext) loadLogs(current + 1); });
     container.appendChild(nextLi);
 }
+
+document.addEventListener('DOMContentLoaded', initAuditLogs);

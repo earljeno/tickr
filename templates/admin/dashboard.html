@@ -7,7 +7,6 @@
 
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
 <div class="main-container">
@@ -21,11 +20,13 @@
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="page-actions d-flex justify-content-md-end gap-3 mt-3 mt-md-0">
-                    <div class="search-container flex-grow-1 flex-md-grow-0" hidden>
-                        <input type="text" class="form-control" placeholder="Search employees..." id="employeeSearch">
-                    </div>
-                    <!-- <button class="btn btn-primary export-btn">Export Report</button> -->
+                <div class="page-actions d-flex justify-content-md-end gap-2 flex-wrap mt-3 mt-md-0">
+                    <a class="btn btn-outline-primary" href="{{ url_for('admin.audit_logs') }}">
+                        <i class="fas fa-list me-1"></i> Audit Logs
+                    </a>
+                    <a class="btn btn-primary btn-sm" href="#" hidden>
+                        <i class="fas fa-file-export me-1"></i> Export Report
+                    </a>
                 </div>
             </div>
         </div>
@@ -108,32 +109,32 @@
             <!-- Recent Activity -->
             <div class="col-xl-6 col-lg-12">
                 <div class="content-card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h2 class="mb-0">Recent Activity</h2>
-                        <a class="btn btn-link btn-sm view-all p-0" href="{{ url_for('admin.audit_logs') }}">View
-                            All</a>
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h2 class="mb-1">Recent Activity</h2>
+                            <p class="text-muted small mb-0">Latest system actions and user updates</p>
+                        </div>
+                        <a class="btn btn-outline-primary btn-sm view-all" href="{{ url_for('admin.audit_logs') }}">View All Logs</a>
                     </div>
                     <div class="card-body">
                         <div class="activity-list">
                             {% for activity in recent_activities %}
-                            <div class="activity-item d-flex align-items-center mb-3">
-
-                                <div class="activity-avatar me-3 bg-primary text-white d-flex justify-content-center align-items-center rounded-circle fw-bold"
-                                    style="width: 40px; height: 40px;">
+                            <div class="activity-item">
+                                <div class="activity-avatar bg-primary text-white d-flex justify-content-center align-items-center rounded-circle fw-bold">
                                     {{ activity.initials }}
                                 </div>
-
                                 <div class="activity-details flex-grow-1">
-                                    <div class="activity-name fw-bold">{{ activity.name }}</div>
-                                    <div class="activity-action text-muted small">{{ activity.action }}</div>
-                                    <div class="activity-time text-muted" style="font-size: 0.75rem;">{{ activity.time
-                                        }}</div>
+                                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                        <div>
+                                            <div class="activity-name">{{ activity.name }}</div>
+                                            <div class="activity-action">{{ activity.action }}</div>
+                                        </div>
+                                        <div class="activity-time text-muted">{{ activity.time }}</div>
+                                    </div>
                                 </div>
-
                                 <div class="activity-status {{ activity.status_class }}">
                                     {{ activity.status }}
                                 </div>
-
                             </div>
                             {% else %}
                             <div class="text-center text-muted py-4">
@@ -155,34 +156,37 @@
                     <div class="card-body">
                         <div class="summary-metrics">
 
-                            <div class="summary-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="summary-label">Average Hours Worked</div>
-                                    <div class="summary-value">{{ average_hours_worked }}</div>
+                            <div class="dashboard-summary-item">
+                                <div class="dashboard-summary-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <div class="dashboard-summary-label">Average Hours Worked</div>
+                                        <div class="dashboard-summary-value">{{ average_hours_worked if average_hours_worked is defined else '--' }}</div>
+                                    </div>
+                                    <span class="dashboard-summary-pill {{ average_trend_class if average_trend_class is defined else '' }}">{{ average_trend_text if average_trend_text is defined else 'Today average' }}</span>
                                 </div>
-                                <div class="summary-trend {{ average_trend_class }}">
-                                    {{ average_trend_text }}
-                                </div>
+                                <div class="dashboard-summary-note text-muted small">Quick view of today’s average shift length</div>
                             </div>
 
-                            <div class="summary-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="summary-label">Overtime Hours</div>
-                                    <div class="summary-value">{{ overtime_hours }}</div>
+                            <div class="dashboard-summary-item">
+                                <div class="dashboard-summary-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <div class="dashboard-summary-label">Overtime Hours</div>
+                                        <div class="dashboard-summary-value">{{ overtime_hours if overtime_hours is defined else '--' }}</div>
+                                    </div>
+                                    <span class="dashboard-summary-pill {{ overtime_trend_class if overtime_trend_class is defined else '' }}">{{ overtime_trend_text if overtime_trend_text is defined else 'Overtime' }}</span>
                                 </div>
-                                <div class="summary-trend {{ overtime_trend_class }}">
-                                    {{ overtime_trend_text }}
-                                </div>
+                                <div class="dashboard-summary-note text-muted small">Overtime results beyond normal schedule</div>
                             </div>
 
-                            <div class="summary-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="summary-label">4-Hour Compliance</div>
-                                    <div class="summary-value">{{ compliance_rate }}%</div>
+                            <div class="dashboard-summary-item">
+                                <div class="dashboard-summary-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <div class="dashboard-summary-label">4-Hour Compliance</div>
+                                        <div class="dashboard-summary-value">{{ compliance_rate if compliance_rate is defined else '--' }}%</div>
+                                    </div>
+                                    <span class="dashboard-summary-pill {{ compliance_trend_class if compliance_trend_class is defined else '' }}">Compliance</span>
                                 </div>
-                                <div class="summary-trend {{ compliance_trend_class }}">
-                                    {{ compliance_trend_text }}
-                                </div>
+                                <div class="dashboard-summary-note text-muted small">Portion of entries meeting the 4-hour policy</div>
                             </div>
                         </div>
                     </div>

@@ -26,6 +26,55 @@ body {
     box-sizing: border-box;
 }
 
+.dashboard-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.dashboard-kpi-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.kpi-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #6b7280;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+}
+
+@media (max-width: 991.98px) {
+    .dashboard-kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .dashboard-kpi-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (min-width: 576px) {
     .main-container {
         padding: 24px;
@@ -98,14 +147,15 @@ body {
 .stats-section .stat-card {
     background: white;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 24px;
-    transition: box-shadow 0.2s;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s, transform 0.2s;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
 }
 
 .stats-section .stat-card:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
 }
   
 .stats-section .stat-title {
@@ -172,19 +222,19 @@ body {
 .content-card {
     background: white;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
 }
   
 .content-card .card-header {
-    padding: 24px 24px 16px 24px;
+    padding: 22px 24px 16px 24px;
     border-bottom: 1px solid #f3f4f6;
 }
   
 .content-card .card-header h2 {
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
     color: #111827;
 }
   
@@ -195,12 +245,12 @@ body {
 .content-card .view-all {
     color: #3b82f6;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     text-decoration: none;
 }
   
 .content-card .view-all:hover {
-    color: #2563eb;
+    color: #1d4ed8;
     text-decoration: none;
 }
   
@@ -212,40 +262,47 @@ body {
 }
   
 .activity-list .activity-item {
-    padding: 12px;
-    border-radius: 8px;
-    transition: background-color 0.2s;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid #f3f4f6;
+    transition: box-shadow 0.2s, transform 0.2s;
+    background: #ffffff;
 }
   
 .activity-list .activity-item:hover {
-    background: #f9fafb;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    transform: translateY(-1px);
 }
   
 .activity-list .activity-avatar {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: #3b82f6;
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 700;
+    font-size: 15px;
     flex-shrink: 0;
 }
   
 .activity-list .activity-name {
-    font-weight: 500;
+    font-weight: 700;
     color: #111827;
-    font-size: 14px;
-    margin-bottom: 2px;
+    font-size: 15px;
+    margin-bottom: 4px;
 }
   
 .activity-list .activity-action {
     font-size: 13px;
     color: #6b7280;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 }
   
 .activity-list .activity-time {
@@ -255,13 +312,13 @@ body {
   
 /* Status Badges - Reusable component */
 .activity-status, .status-badge {
-    padding: 4px 8px;
-    border-radius: 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
     font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
+    font-weight: 700;
     letter-spacing: 0.5px;
     white-space: nowrap;
+    text-transform: uppercase;
 }
   
 .activity-status.on-time, .status-badge.on-time {
@@ -327,6 +384,84 @@ body {
     font-size: 14px;
 }
   
+/* Summary Panel Enhancements */
+.summary-metrics {
+    display: grid;
+    gap: 16px;
+}
+
+.summary-item {
+    padding: 18px 20px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+}
+
+.summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.summary-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.summary-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.summary-note {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.summary-pill {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #111827;
+    background: #eff6ff;
+}
+
+.summary-pill.positive {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.summary-pill.negative {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.summary-pill.neutral {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+@media (max-width: 991.98px) {
+    .summary-metrics {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .content-card .card-header,
+    .content-card .card-body {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+}
+
 /* Progress Bars - Reusable component */
 .attendance-bar, .progress-bar-custom {
     width: 60px;
@@ -371,6 +506,64 @@ body {
     color: #374151;
     border: 1px solid #e5e7eb;
 }
+
+.dashboard-summary-item {
+    padding: 18px 20px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+}
+
+.dashboard-summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.dashboard-summary-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.dashboard-summary-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.dashboard-summary-note {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.dashboard-summary-pill {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #111827;
+    background: #eff6ff;
+}
+
+.dashboard-summary-pill.positive {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.dashboard-summary-pill.negative {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.dashboard-summary-pill.neutral {
+    background: #e2e8f0;
+    color: #334155;
+}
   
 .action-button.secondary:hover {
     background: #f3f4f6;
@@ -382,49 +575,6 @@ body {
     font-size: 20px;
 }
   
-/* Summary Metrics - Reusable component */
-.summary-metrics {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-  
-.summary-metrics .summary-item {
-    padding: 16px;
-    background: #f9fafb;
-    border-radius: 8px;
-}
-  
-.summary-metrics .summary-label {
-    font-size: 14px;
-    color: #6b7280;
-    font-weight: 500;
-    margin-bottom: 4px;
-}
-  
-.summary-metrics .summary-value {
-    font-size: 18px;
-    font-weight: 600;
-    color: #111827;
-}
-  
-.summary-metrics .summary-trend {
-    font-size: 12px;
-    font-weight: 500;
-    padding: 2px 6px;
-    border-radius: 4px;
-    white-space: nowrap;
-}
-  
-.summary-metrics .summary-trend.positive {
-    background: #d1fae5;
-    color: #065f46;
-}
-  
-.summary-metrics .summary-trend.negative {
-    background: #fee2e2;
-    color: #991b1b;
-}
 
 /* ==============================================
    DAILY LOGS SPECIFIC STYLES
@@ -1656,9 +1806,8 @@ body {
     }
     
     .activity-list .activity-item {
-        flex-direction: column;
-        align-items: flex-start !important;
-        gap: 8px;
+        grid-template-columns: 1fr;
+        align-items: start;
     }
     
     .department-list .department-item {

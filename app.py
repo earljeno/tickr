@@ -50,9 +50,7 @@ app.register_blueprint(api_bp, url_prefix='/api')
 @app.route('/')
 def index():
     if current_user.is_authenticated:
-        if current_user.role not in ['superadmin', 'admin']:
-            return redirect(url_for('gia.dashboard'))
-        else:
+        if current_user.role in ['superadmin', 'admin']:
             return redirect(url_for('admin.dashboard'))
 
     return render_template('/auth/login.html')

@@ -136,6 +136,7 @@ th:nth-child(3), td:nth-child(3) { width: 7%; }  /* CLOCK IN */
 
 .signature p {
     margin: 0;
+    font-weight: bold;
 }
 
 .signature div {

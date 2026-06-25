@@ -1,379 +1,447 @@
-document.addEventListener('DOMContentLoaded', function () {
-    setupSearch();
-    addInteractiveEffects();
-    setupPagination();
-    loadUsers();
-});
+let currentPage = 1;
+let perPage = 10;
+let currentEditingUserId = null;
 
-async function setupSearch() {
-    const searchInput = document.getElementById('userSearch');
-    const tableBody = document.getElementById('usersTableBody');
-    const rows = tableBody.querySelectorAll('tr');
-
-    function filterUsers() {
-        const searchTerm = searchInput.value.trim().toLowerCase();
-        rows.forEach(row => {
-            const rowText = row.innerText.toLowerCase();
-            row.style.display = rowText.includes(searchTerm) ? '' : 'none';
-        });
-    }
-
-    searchInput.addEventListener('input', function () {
-        const searchTerm = this.value.trim().toLowerCase();
-        filterUsers();
-
-        if (searchTerm.length > 0) {
-            this.style.borderColor = '#10b981'; // green
-            setTimeout(() => {
-                this.style.borderColor = '#d1d5db'; // default gray
-            }, 1000);
-        }
-    });
+function getFilterValues() {
+    return {
+        search: document.getElementById('userSearch').value.trim(),
+        status: document.getElementById('statusFilter').value,
+        role: document.getElementById('roleFilter').value,
+        perPage: parseInt(document.getElementById('pageSizeSelect').value, 10) || 10
+    };
 }
 
-function addInteractiveEffects() {
-    document.querySelectorAll('#usersTableBody tr').forEach(row => {
-        row.addEventListener('mouseenter', () => row.style.backgroundColor = '#f8f9fa');
-        row.addEventListener('mouseleave', () => row.style.backgroundColor = '');
-    });
+function buildQueryString() {
+    const filters = getFilterValues();
+    const params = new URLSearchParams();
 
-    const refreshBtn = document.getElementById('refreshBtn');
-    const exportBtn = document.getElementById('exportBtn');
+    params.set('page', currentPage);
+    params.set('per_page', filters.perPage);
 
-    if (exportBtn) {
-        exportBtn.addEventListener('click', function () {
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
-            this.disabled = true;
+    if (filters.search) params.set('search', filters.search);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.role) params.set('role', filters.role);
 
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-download me-1"></i>Export';
-                this.disabled = false;
-
-                const link = document.createElement('a');
-                link.href = '/api/export-users';
-                link.download = ''; // optional
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }, 1000);
-        });
-    }
-
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', async function () {
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...';
-            this.disabled = true;
-
-            loadUsers();
-
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-sync me-1"></i>Refresh';
-                this.disabled = false;
-            }, 2000);
-        });
-    }
+    return params.toString();
 }
 
-function loadUsers() {
-    fetch(`/api/users-data`)
-        .then(res => {
-            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-            return res.json();
-        })
-        .then(users => {
-            const tbody = document.getElementById('usersTableBody');
-            tbody.innerHTML = '';
+function updatePagination(total, page, perPage) {
+    const pagination = document.getElementById('usersPagination');
+    const showingInfo = document.getElementById('usersShowingInfo');
 
-            users.forEach(user => {
-                const tr = document.createElement('tr');
+    pagination.innerHTML = '';
 
-                tr.innerHTML = `
-                <td class="ps-4">
-                    <div class="d-flex align-items-center">
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const startItem = total === 0 ? 0 : (page - 1) * perPage + 1;
+    const endItem = Math.min(total, page * perPage);
+    showingInfo.textContent = `Showing ${startItem}-${endItem} of ${total} users`;
+
+    const createPageButton = (label, targetPage, disabled = false, active = false) => {
+        const li = document.createElement('li');
+        li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'page-link';
+        button.textContent = label;
+        button.disabled = disabled;
+        button.addEventListener('click', () => {
+            if (!disabled && currentPage !== targetPage) {
+                currentPage = targetPage;
+                loadUsers();
+            }
+        });
+        li.appendChild(button);
+        return li;
+    };
+
+    pagination.appendChild(createPageButton('Previous', Math.max(1, page - 1), page === 1));
+
+    const windowSize = 5;
+    let startPage = Math.max(1, page - Math.floor(windowSize / 2));
+    let endPage = Math.min(totalPages, startPage + windowSize - 1);
+    if (endPage - startPage < windowSize - 1) {
+        startPage = Math.max(1, endPage - windowSize + 1);
+    }
+
+    for (let p = startPage; p <= endPage; p += 1) {
+        pagination.appendChild(createPageButton(p, p, false, p === page));
+    }
+
+    pagination.appendChild(createPageButton('Next', Math.min(totalPages, page + 1), page === totalPages));
+}
+
+function normalizePhilippinePhone(phone) {
+    if (!phone) return '';
+    let digits = phone.toString().replace(/\D+/g, '');
+    digits = digits.replace(/^00/, '');
+
+    if (digits === '63') {
+        return '';
+    }
+
+    if (digits.startsWith('63')) {
+        // already country formatted
+    } else if (digits.startsWith('0')) {
+        digits = '63' + digits.slice(1);
+    } else {
+        digits = '63' + digits;
+    }
+
+    if (digits === '63') {
+        return '';
+    }
+
+    return digits;
+}
+
+function formatPhilippinePhone(phone) {
+    const digits = normalizePhilippinePhone(phone);
+    if (!digits) return '-';
+    if (!digits.startsWith('63')) return '+' + digits;
+
+    const rest = digits.slice(2);
+    if (!rest.length) return '-';
+    if (rest.length === 10) {
+        return `+63 ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6)}`;
+    }
+    if (rest.length === 9) {
+        return `+63 ${rest.slice(0, 1)} ${rest.slice(1, 5)} ${rest.slice(5)}`;
+    }
+    if (rest.length === 7) {
+        return `+63 ${rest.slice(0, 3)} ${rest.slice(3)}`;
+    }
+    if (rest.length === 8) {
+        return `+63 ${rest.slice(0, 3)} ${rest.slice(3)}`;
+    }
+    return `+${digits}`;
+}
+
+function formatPhone(phone) {
+    return phone ? formatPhilippinePhone(phone) : '-';
+}
+
+function formatLaboratory(lab) {
+    return lab ? `Room ${lab}` : '-';
+}
+
+function renderUsers(users) {
+    const tbody = document.getElementById('usersTableBody');
+    tbody.innerHTML = '';
+
+    users.forEach(user => {
+        const tr = document.createElement('tr');
+        const initials = `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase();
+        const roleLabel = user.role === 'gia' ? 'GIA' : user.role || '-';
+
+        tr.innerHTML = `
+            <td class="ps-4">
+                <div class="d-flex align-items-center">
                     <div class="user-avatar me-3">
                         <div class="default-avatar rounded-circle d-flex align-items-center justify-content-center"
                             style="width: 40px; height: 40px">
-                            <span class="initials">${user.first_name[0]}${user.last_name[0]}</span>
+                            <span class="initials">${initials}</span>
                         </div>
                     </div>
                     <div>
-                        <div class="user-name">${user.first_name} ${user.last_name}</div>
-                        <div class="user-email">${user.user_id}</div>
+                        <div class="user-name">${user.first_name || '-'} ${user.last_name || ''}</div>
+                        <div class="user-email">${user.user_id || '-'}</div>
                     </div>
-                    </div>
-                </td>
-                <td class="text-center">
-                    <span class="role-badge ${user.role.toLowerCase()}">${user.role === "gia" ? "GIA" : user.role}</span>
-                </td>
-                <td class="text-center">
-                    <span class="status-badge ${user.status.toLowerCase()}">${user.status}</span>
-                </td>
-                <td class="text-center" hidden>
-                    <div class="last-login">
-                    <div>-</div>
-                    <small class="text-muted"></small>
-                    </div>
-                </td>
-                <td class="text-center">
-                    <div class="d-inline-flex gap-2 justify-content-center">
-                        <div class="action-buttons">
+                </div>
+            </td>
+            <td class="text-center">${formatPhone(user.phone_number)}</td>
+            <td class="text-center">${formatLaboratory(user.laboratory)}</td>
+            <td class="text-center">
+                <span class="role-badge ${user.role ? user.role.toLowerCase() : 'unknown'}">${roleLabel}</span>
+            </td>
+            <td class="text-center">
+                <span class="status-badge ${user.status ? user.status.toLowerCase() : 'unknown'}">${user.status || '-'}</span>
+            </td>
+            <td class="text-center">
+                <div class="d-inline-flex gap-2 justify-content-center">
+                    <div class="action-buttons">
                         <button class="btn btn-sm btn-outline-primary" data-user-id="${user.user_id}" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger" data-user-id="${user.user_id}" title="Delete" hidden>
                             <i class="fas fa-trash"></i>
                         </button>
-                        </div>
                     </div>
-                </td>
-                `;
+                </div>
+            </td>
+        `;
 
-                tbody.appendChild(tr);
-            })
-        })
+        tbody.appendChild(tr);
+    });
 }
 
-// EDIT AND DELETE
-const tbody = document.getElementById('usersTableBody');
-tbody.addEventListener('click', e => {
-    const editBtn = e.target.closest('.btn-outline-primary');
-    const deleteBtn = e.target.closest('.btn-outline-danger');
+function loadUsers() {
+    const filters = getFilterValues();
+    perPage = filters.perPage;
 
-    if (editBtn) {
-        const userId = editBtn.getAttribute('data-user-id');
-        console.log('Edit clicked:', userId);
+    fetch(`/api/users-data?${buildQueryString()}`)
+        .then(res => {
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to fetch users');
+            }
 
-        fetch(`/api/get-user/${userId}`)
-            .then(res => {
-                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-                return res.json();
-            })
-            .then(user => {
-                document.getElementById('editUserId').value = user.user_id;
-                document.getElementById('editFirstName').value = user.first_name;
-                document.getElementById('editLastName').value = user.last_name;
-                document.getElementById('editMiddleInitial').value = user.middle_name || '';
-                document.getElementById('editRole').value = user.role_id;
-                document.getElementById('editStatus').value = user.status;
+            renderUsers(data.users || []);
+            updatePagination(data.total || 0, data.page || currentPage, data.per_page || perPage);
+        })
+        .catch(err => {
+            console.error('Failed to load users:', err);
+            document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-4">Unable to load users.</td></tr>';
+            document.getElementById('usersShowingInfo').textContent = 'Unable to load users.';
+            document.getElementById('usersPagination').innerHTML = '';
+        });
+}
 
-                new bootstrap.Modal(document.getElementById('editUserModal')).show();
-            })
-            .catch(err => {
-                console.error("Failed to load user:", err.message);
-                alert("User not found or something went wrong.");
-            });
+function applyFilters() {
+    currentPage = 1;
+    loadUsers();
+}
 
+function clearFilters() {
+    document.getElementById('userSearch').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('roleFilter').value = '';
+    document.getElementById('pageSizeSelect').value = '10';
+    currentPage = 1;
+    loadUsers();
+}
+
+function showLoadingState(button, label) {
+    button.dataset.originalLabel = button.innerHTML;
+    button.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> ${label}`;
+    button.disabled = true;
+}
+
+function resetButtonState(button) {
+    if (button.dataset.originalLabel) {
+        button.innerHTML = button.dataset.originalLabel;
+        delete button.dataset.originalLabel;
+    }
+    button.disabled = false;
+}
+
+function setupListeners() {
+    document.getElementById('userSearch').addEventListener('input', () => {
+        currentPage = 1;
         loadUsers();
+    });
+
+    document.getElementById('statusFilter').addEventListener('change', applyFilters);
+    document.getElementById('roleFilter').addEventListener('change', applyFilters);
+    document.getElementById('pageSizeSelect').addEventListener('change', () => {
+        currentPage = 1;
+        applyFilters();
+    });
+    document.getElementById('clearFilters').addEventListener('click', clearFilters);
+
+    const refreshBtn = document.getElementById('refreshBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            showLoadingState(refreshBtn, 'Refreshing...');
+            loadUsers();
+            setTimeout(() => resetButtonState(refreshBtn), 1000);
+        });
     }
 
-    // SUBMIT EDIT USER
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            showLoadingState(exportBtn, 'Exporting...');
+            const link = document.createElement('a');
+            link.href = '/api/export-users';
+            link.download = '';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => resetButtonState(exportBtn), 500);
+        });
+    }
+
+    document.getElementById('usersTableBody').addEventListener('click', e => {
+        const editBtn = e.target.closest('.btn-outline-primary');
+        const deleteBtn = e.target.closest('.btn-outline-danger');
+
+        if (editBtn) {
+            currentEditingUserId = editBtn.dataset.userId;
+            fetch(`/api/get-user/${currentEditingUserId}`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                    return res.json();
+                })
+                .then(user => {
+                    document.getElementById('editUserId').value = user.user_id;
+                    document.getElementById('editFirstName').value = user.first_name;
+                    document.getElementById('editLastName').value = user.last_name;
+                    document.getElementById('editMiddleInitial').value = user.middle_name || '';
+                    document.getElementById('editRole').value = user.role;
+                    document.getElementById('editPhone').value = user.phone_number || '';
+                    document.getElementById('editLaboratory').value = user.laboratory || '';
+                    document.getElementById('editStatus').value = user.status;
+
+                    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+                })
+                .catch(err => {
+                    console.error('Failed to load user:', err);
+                    showAlert('danger', 'Unable to load user details.');
+                });
+        }
+
+        if (deleteBtn) {
+            const userId = deleteBtn.dataset.userId;
+            fetch(`/api/get-user/${userId}`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+                    return res.json();
+                })
+                .then(user => {
+                    document.getElementById('deleteUserName').textContent = `${user.first_name} ${user.last_name}`;
+                    const modalElement = document.getElementById('deleteUserModal');
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modal.show();
+
+                    const newConfirmBtn = document.getElementById('confirmDeleteUser');
+                    newConfirmBtn.replaceWith(newConfirmBtn.cloneNode(true));
+                    const clonedConfirmBtn = document.getElementById('confirmDeleteUser');
+
+                    clonedConfirmBtn.addEventListener('click', function () {
+                        showLoadingState(clonedConfirmBtn, 'Deleting...');
+                        fetch(`/api/delete-user/${userId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId })
+                        })
+                            .then(async res => {
+                                const data = await res.json();
+                                if (!res.ok || !data.success) {
+                                    throw new Error(data.error || `Server responded with ${res.status}`);
+                                }
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteUserModal'));
+                                if (modal) modal.hide();
+                                loadUsers();
+                            })
+                            .catch(err => {
+                                console.error('Failed to delete user:', err);
+                                showAlert('danger', 'Unable to delete user.');
+                            })
+                            .finally(() => resetButtonState(clonedConfirmBtn));
+                    });
+                })
+                .catch(err => {
+                    console.error('Failed to load user:', err);
+                    showAlert('danger', 'Unable to load user details.');
+                });
+        }
+    });
+
     document.getElementById('saveUserChanges').addEventListener('click', function () {
         const form = document.getElementById('editUserForm');
-        const userId = editBtn.getAttribute('data-user-id');
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
 
-        // Show loading state
-        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-        this.disabled = true;
-
-        // Prepare form data
+        const editPhoneValue = document.getElementById('editPhone').value.trim();
         const userData = {
             userId: document.getElementById('editUserId').value,
             firstName: document.getElementById('editFirstName').value,
             lastName: document.getElementById('editLastName').value,
-            middleInitial: document.getElementById('editMiddleInitial').value,
+            middleInitial: document.getElementById('editMiddleInitial').value || '',
+            phoneNumber: editPhoneValue ? normalizePhilippinePhone(editPhoneValue) : '',
+            laboratory: document.getElementById('editLaboratory').value || '',
             role: document.getElementById('editRole').value,
             status: document.getElementById('editStatus').value
         };
 
-        // Send to backend
-        fetch(`/api/update-user/${userId}`, {
+        const button = this;
+        showLoadingState(button, 'Saving...');
+
+        fetch(`/api/update-user/${currentEditingUserId}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData)
         })
-            .then(res => res.json())
-            .then(data => {
-                this.innerHTML = 'Save Changes';
-                this.disabled = false;
-
-                if (data.success) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
-                    if (modal) modal.hide();
-
-                    loadUsers();
-                    // filterUsers();
-
-                    console.log('User updated successfully!');
-                    document.getElementById('addUserForm').reset();
-                    showAlert('success', 'User updated successfully!');
-                } else {
-                    console.error('Error updating user:', data.error);
+            .then(async res => {
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Unable to update user.');
                 }
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+                if (modal) modal.hide();
+                loadUsers();
+                showAlert('success', 'User updated successfully!');
             })
             .catch(err => {
-                this.innerHTML = 'Save Changes';
-                this.disabled = false;
-                console.error('Fetch error:', err);
+                console.error('Error updating user:', err);
                 showAlert('danger', 'Failed to update user.');
-            });
+            })
+            .finally(() => resetButtonState(button));
     });
 
-    if (deleteBtn) {
-        const userId = deleteBtn.getAttribute('data-user-id');
-        console.log('Delete clicked:', userId);
+    document.getElementById('saveNewUser').addEventListener('click', function () {
+        const addUserForm = document.getElementById('addUserForm');
+        if (!addUserForm.checkValidity()) {
+            addUserForm.reportValidity();
+            return;
+        }
 
-        fetch(`/api/get-user/${userId}`)
-            .then(res => {
-                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-                return res.json();
-            })
-            .then(user => {
-                document.getElementById('deleteUserName').textContent = `${user.first_name} ${user.last_name}`;
-                const modalElement = document.getElementById('deleteUserModal');
-                const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-                modal.show();
+        const addPhoneValue = document.getElementById('addPhone').value.trim();
+        const userData = {
+            userId: document.getElementById('addUserId').value,
+            firstName: document.getElementById('addFirstName').value,
+            lastName: document.getElementById('addLastName').value,
+            middleInitial: document.getElementById('addMiddleInitial').value || '',
+            phoneNumber: addPhoneValue ? normalizePhilippinePhone(addPhoneValue) : '',
+            laboratory: document.getElementById('addLaboratory').value || '',
+            role: document.getElementById('addRole').value
+        };
 
-                const confirmDeleteBtn = document.getElementById('confirmDeleteUser');
-                confirmDeleteBtn.replaceWith(confirmDeleteBtn.cloneNode(true));
-                const newConfirmBtn = document.getElementById('confirmDeleteUser');
+        const button = this;
+        showLoadingState(button, 'Adding...');
 
-                newConfirmBtn.addEventListener('click', function () {
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
-                    this.disabled = true;
-
-                fetch(`/api/delete-user/${userId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
-                })
-                    .then(async res => {
-                        let data;
-                        try {
-                            data = await res.json();
-                        } catch {
-                            data = { success: false, error: 'Invalid JSON response from server' };
-                        }
-
-                        if (!res.ok || !data.success) {
-                            throw new Error(data.error || `Server responded with ${res.status}`);
-                        }
-
-                        console.log('User deleted successfully');
-                        modal.hide();
-                        loadUsers();
-                    })
-                    .catch(err => {
-                        console.error('Failed to delete user:', err.message);
-                    })
-                    .finally(() => {
-                        this.innerHTML = 'Delete User';
-                        this.disabled = false;
-                    });
-                });
-            })
-            .catch(err => {
-                console.error("Failed to load user:", err.message);
-                alert("User not found or something went wrong.");
-            });
-    }
-});
-
-// ADD USER MODAL
-document.getElementById('saveNewUser').addEventListener('click', function () {
-    const addUserForm = document.getElementById('addUserForm');
-
-    if (!addUserForm.checkValidity()) {
-        addUserForm.reportValidity();
-        return;
-    }
-
-    // Gather form data
-    const userData = {
-        userId: document.getElementById('addUserId').value,
-        firstName: document.getElementById('addFirstName').value,
-        lastName: document.getElementById('addLastName').value,
-        middleInitial: document.getElementById('addMiddleInitial').value || '',
-        role: document.getElementById('addRole').value,
-    };
-
-    // Disable and animate button
-    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
-    this.disabled = true;
-    this.style.transform = 'scale(0.95)';
-
-    // Send data to backend
-    fetch('/api/add-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-    })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
+        fetch('/api/add-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+        })
+            .then(async res => {
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Unable to add user.');
+                }
                 const modalEl = document.getElementById('addUserModal');
                 const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-
-                // Give Bootstrap time to finish transition before hiding
-                setTimeout(() => {
-                    modal.hide();
-                    // Remove backdrop and focus trap manually in case
-                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                    document.body.classList.remove('modal-open');
-                    document.body.style.overflow = '';
-                    showAlert('success', 'User added successfully!');
-                    loadUsers();
-                }, 300);
-            } else {
-                console.error('Error adding user:', data.error);
-                showAlert('danger', 'Failed to add user.');
-            }
-        })
-        .catch(err => console.error('Fetch failed:', err))
-        .finally(() => {
-            // Restore button after fetch finishes
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-plus me-2"></i>Add User';
-                this.disabled = false;
-                this.style.transform = '';
+                modal.hide();
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
                 document.getElementById('addUserForm').reset();
-            }, 200);
-        });
-});
-
-function setupPagination() {
-    document.querySelectorAll('.pagination .page-link').forEach(link => {
-        link.addEventListener('click', function (e) {
-            if (!this.parentElement.classList.contains('disabled') &&
-                !this.parentElement.classList.contains('active')) {
-                e.preventDefault();
-                document.querySelectorAll('.pagination .page-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                this.parentElement.classList.add('active');
-                console.log('Page changed to:', this.textContent);
-            }
-        });
+                loadUsers();
+                showAlert('success', 'User added successfully!');
+            })
+            .catch(err => {
+                console.error('Error adding user:', err);
+                showAlert('danger', 'Failed to add user.');
+            })
+            .finally(() => resetButtonState(button));
     });
 }
 
+document.addEventListener('DOMContentLoaded', function () {
+    setupListeners();
+    loadUsers();
+});
+
 document.addEventListener('keydown', function (e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         document.getElementById('userSearch').focus();
-    }
-
-    if (e.key === 'Escape') {
-        const searchInput = document.getElementById('userSearch');
-        if (document.activeElement === searchInput) {
-            searchInput.value = '';
-            filterUsers();
-            searchInput.blur();
-        }
     }
 });

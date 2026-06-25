@@ -57,10 +57,14 @@ def login():
 
         if not user:
             return jsonify({'success': False, 'error': 'Invalid username or password.'}), 401
+        
 
         if not check_password_hash(user.password, password):
             return jsonify({'success': False, 'error': 'Invalid username or password.'}), 401
 
+        if user.role not in ['superadmin', 'admin']:
+            return jsonify({'success': False, 'error': 'Unauthorized access.'}), 403
+        
         if user.status != 'active':
             return jsonify({'success': False, 'error': 'The account is no longer active.'}), 403
 
