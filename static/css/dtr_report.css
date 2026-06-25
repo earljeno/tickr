@@ -192,3 +192,27 @@ table tr {
     color: #888;
     opacity: 0.5;
 }
+
+.dtr {
+    position: relative;
+}
+
+.watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    opacity: 0.15; /* Adjust between 0.1 and 0.2 for best visibility */
+    z-index: -1;
+    pointer-events: none; /* Prevents the watermark from interfering with text selection */
+    width: 80%; /* Ensures it scales with the DTR card */
+    max-width: 400px;
+}
+
+@media print {
+    .watermark {
+        display: block !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
