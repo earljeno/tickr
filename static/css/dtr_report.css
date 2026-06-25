@@ -190,7 +190,7 @@ table tr {
     text-align: right;
     font-size: 0.8em;
     color: #ccc;
-    opacity: 0.15;
+    opacity: 0.5;
 }
 
 .ghost-watermark {
