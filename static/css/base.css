@@ -471,3 +471,7 @@ header#main-header {
     width: 0.875rem;
     color: rgb(113, 113, 122);
 }
+
+table td, table th {
+    white-space: nowrap;
+}
