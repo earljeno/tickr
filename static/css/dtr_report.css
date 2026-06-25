@@ -189,8 +189,10 @@ table tr {
     margin-right: 5px;
     text-align: right;
     font-size: 0.8em;
-    color: #888;
-    opacity: 0.5;
+    color: rgba(200, 200, 200, 0.3);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.15;
 }
 
 .dtr {
