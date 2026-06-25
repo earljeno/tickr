@@ -210,8 +210,7 @@ table tr {
     max-width: 400px;
 }
 
-.dtr {
-    /* Add a subtle dot or grid pattern */
+body {
     background-image: radial-gradient(#d3d3d3 1px, transparent 1px);
     background-size: 10px 10px;
     background-repeat: repeat;
