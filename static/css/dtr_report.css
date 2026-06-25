@@ -189,10 +189,22 @@ table tr {
     margin-right: 5px;
     text-align: right;
     font-size: 0.8em;
-    color: rgba(200, 200, 200, 0.3);
+    color: #ccc;
+    opacity: 0.15;
+}
+
+.ghost-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 4rem;
+    color: rgba(200, 200, 200, 0.2); 
     pointer-events: none;
     user-select: none;
-    opacity: 0.15;
+    white-space: nowrap;
+    z-index: -1;
+    font-weight: bold;
 }
 
 .dtr {
