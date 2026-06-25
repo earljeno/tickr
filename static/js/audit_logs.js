@@ -327,38 +327,32 @@ function renderPagination(current, totalPages, totalItems) {
     const showingInfo = document.querySelector(".showing-info");
 
     showingInfo.textContent = `Showing ${((current-1)*perPage+1)}-${Math.min(current*perPage, totalItems)} of ${totalItems} audit log entries`;
-
     container.innerHTML = '';
 
-    // Previous
+    // Previous Button (Same as your code)
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${current === 1 ? 'disabled' : ''}`;
     prevLi.innerHTML = `<a class="page-link" href="#">Previous</a>`;
-    prevLi.addEventListener('click', e => {
-        e.preventDefault();
-        if (current > 1) loadLogs(current - 1);
-    });
+    prevLi.addEventListener('click', e => { e.preventDefault(); if (current > 1) loadLogs(current - 1); });
     container.appendChild(prevLi);
 
-    // Page numbers (you can limit the number of visible pages if needed)
-    for (let i = 1; i <= totalPages; i++) {
+    // Dynamic Page Numbers (Logic to show max 5 buttons)
+    const windowSize = 2; // Number of pages before/after current
+    let start = Math.max(1, current - windowSize);
+    let end = Math.min(totalPages, current + windowSize);
+
+    for (let i = start; i <= end; i++) {
         const li = document.createElement('li');
         li.className = `page-item ${i === current ? 'active' : ''}`;
         li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
-        li.addEventListener('click', e => {
-            e.preventDefault();
-            loadLogs(i);
-        });
+        li.addEventListener('click', e => { e.preventDefault(); loadLogs(i); });
         container.appendChild(li);
     }
 
-    // Next
+    // Next Button (Same as your code)
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${current === totalPages ? 'disabled' : ''}`;
     nextLi.innerHTML = `<a class="page-link" href="#">Next</a>`;
-    nextLi.addEventListener('click', e => {
-        e.preventDefault();
-        if (current < totalPages) loadLogs(current + 1);
-    });
+    nextLi.addEventListener('click', e => { e.preventDefault(); if (current < totalPages) loadLogs(current + 1); });
     container.appendChild(nextLi);
 }
