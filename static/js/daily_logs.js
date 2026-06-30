@@ -278,12 +278,12 @@ function filterLogs() {
         // const matchesDepartment = !departmentFilter || department === departmentFilter;
         // const matchesStatus = !statusFilter || status.includes(statusFilter);
 
-        // if (matchesSearch && matchesDepartment && matchesStatus) {
-        //     row.style.display = '';
-        //     visibleCount++;
-        // } else {
-        //     row.style.display = 'none';
-        // }
+        if (matchesSearch) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
     });
 
     // Update showing info
