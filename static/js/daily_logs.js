@@ -178,7 +178,7 @@ function setupSearch() {
 
 // Filter functionality
 function setupFilters() {
-    const filters = ['dateFilter', 'departmentFilter', 'statusFilter'];
+    const filters = ['dateFilter', 'statusFilter'];
 
     filters.forEach(filterId => {
         const filter = document.getElementById(filterId);
@@ -262,7 +262,7 @@ function refreshLogs() {
 function filterLogs() {
     const searchTerm = document.getElementById('logsSearch').value.toLowerCase();
     const dateFilter = document.getElementById('dateFilter').value;
-    const departmentFilter = document.getElementById('departmentFilter').value;
+    // const departmentFilter = document.getElementById('departmentFilter').value;
     const statusFilter = document.getElementById('statusFilter').value;
 
     const rows = document.querySelectorAll('#logsTableBody tr');
@@ -275,7 +275,7 @@ function filterLogs() {
         // const status = row.querySelector('.status-badge').textContent.toLowerCase();
 
         const matchesSearch = employeeName.includes(searchTerm) || employeeEmail.includes(searchTerm);
-        const matchesDepartment = !departmentFilter || department === departmentFilter;
+        // const matchesDepartment = !departmentFilter || department === departmentFilter;
         const matchesStatus = !statusFilter || status.includes(statusFilter);
 
         if (matchesSearch && matchesDepartment && matchesStatus) {
