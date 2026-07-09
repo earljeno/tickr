@@ -157,6 +157,7 @@ function setupScheduleActions() {
         if (res.ok) {
             bootstrap.Modal.getInstance(document.getElementById('clearConfirmModal')).hide();
             loadSchedules();
+            showAlert('success', 'All schedules have been cleared.');
         }
     });
 
@@ -210,9 +211,11 @@ function setupModal() {
             if (res.ok) {
                 bootstrap.Modal.getInstance(document.getElementById('scheduleEditModal')).hide();
                 loadSchedules();
+                showAlert('success', 'Schedule updated successfully.');
             }
         } catch (err) {
             console.error(err);
+            showAlert('danger', 'Failed to update schedule. Please try again.');
         } finally {
             this.disabled = false;
             this.innerHTML = 'Save Changes';
