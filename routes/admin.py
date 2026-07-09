@@ -8,6 +8,7 @@ from models.models import db, User, Attendance, Schedule, GlobalSettings, Logs
 from sqlalchemy.exc import IntegrityError
 from flask_apscheduler import APScheduler
 from sqlalchemy import func
+import holidays
 
 # Create a Blueprint for admin routes
 admin_bp = Blueprint('admin', __name__)
@@ -284,7 +285,7 @@ def export_dtr():
 
     return render_template('admin/export_dtr.html', month=month)
 
-# DTR PRINT
+# DTR PRINT PAGE
 @admin_bp.route('/export')
 @login_required
 def export_pdf():
@@ -304,6 +305,24 @@ def export_pdf():
     last_day = (first_day + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     total_days = (last_day - first_day).days + 1
 
+    local_holidays = holidays.country_holidays('PH', years=year)
+
+    # --- NEW: Build Day Status Mapping for the Template ---
+    day_status_dict = {}
+    current_date = first_day
+    while current_date <= last_day:
+        date_str = current_date.strftime('%Y-%m-%d')
+        
+        if current_date in local_holidays:
+            day_status_dict[date_str] = local_holidays.get(current_date) # e.g., "Christmas Day"
+        elif current_date.weekday() == 6:  # 6 is Sunday in Python's datetime
+            day_status_dict[date_str] = "Sunday"
+        else:
+            day_status_dict[date_str] = None
+            
+        current_date += timedelta(days=1)
+    # -----------------------------------------------------
+
     users = User.query.filter(User.role.notin_(["superadmin", "admin"]), User.status == "active") \
                       .order_by(User.last_name).all()
 
@@ -312,28 +331,19 @@ def export_pdf():
         Attendance.date <= last_day
     ).order_by(Attendance.date, Attendance.id).all()
 
-    # use plain dict with string keys so Jinja lookup is predictable
     attendance_dict = {}
     total_hours_dict = {str(user.user_id): "0:00" for user in users}
 
     def to_datetime(val, record_date):
-        """Normalize time/datetime/iso strings to a datetime on record_date."""
-        if val is None:
-            return None
-        if isinstance(val, datetime):
-            return val
-        if isinstance(val, time):
-            return datetime.combine(record_date, val)
-        # attempt ISO parse/fallback
-        try:
-            return datetime.fromisoformat(str(val))
-        except Exception:
-            return None
+        if val is None: return None
+        if isinstance(val, datetime): return val
+        if isinstance(val, time): return datetime.combine(record_date, val)
+        try: return datetime.fromisoformat(str(val))
+        except Exception: return None
 
-    # Populate attendance records (use string date keys)
     for record in attendance_records:
         user_key = str(record.user_id)
-        date_key = record.date.strftime('%Y-%m-%d')   # Attendance.date is a date
+        date_key = record.date.strftime('%Y-%m-%d')
 
         attendance_dict.setdefault(user_key, {}).setdefault(date_key, {
             "shift1": {"in": None, "out": None},
@@ -341,11 +351,9 @@ def export_pdf():
         })
 
         slot = attendance_dict[user_key][date_key]
-
         cin = to_datetime(record.clock_in, record.date)
         cout = to_datetime(record.clock_out, record.date)
 
-        # assign into first/second shift slots preserving order
         if cin and cout:
             if not slot["shift1"]["in"]:
                 slot["shift1"]["in"] = cin
@@ -355,11 +363,7 @@ def export_pdf():
             else:
                 slot["shift2"]["in"] = cin
                 slot["shift2"]["out"] = cout
-        else:
-            # Skip adding the shift since clock-out is missing
-            pass
 
-    # Calculate total hours per user
     for user in users:
         user_key = str(user.user_id)
         total_seconds = 0
@@ -375,7 +379,7 @@ def export_pdf():
                     end_dt += timedelta(days=1)
                 total_seconds += (end_dt - start_dt).total_seconds()
 
-        decimal_hours = round(total_seconds / 3600, 2)  # convert to decimal hours
+        decimal_hours = round(total_seconds / 3600, 2)
         total_hours_dict[user_key] = decimal_hours
 
     user_pairs = [users[i:i + 2] for i in range(0, len(users), 2)]
@@ -390,7 +394,8 @@ def export_pdf():
         datetime=datetime,
         unit_head=unit_head.unit_head if unit_head else "N/A",
         attendance_dict=attendance_dict,
-        total_hours_dict=total_hours_dict
+        total_hours_dict=total_hours_dict,
+        day_status_dict=day_status_dict
     )
 
 # Account Settings (Change Password)
