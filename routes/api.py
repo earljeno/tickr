@@ -624,10 +624,15 @@ def update_log(log_id):
         return jsonify({'success': False, 'error': 'Access Denied'}), 403
     
     data = request.get_json()
+
+    # Require both clockIn and clockOut to perform an update
+    if not data or not data.get('clockIn') or not data.get('clockOut'):
+        return jsonify({'success': False, 'error': 'Both clockIn and clockOut are required'}), 400
+
     log = Attendance.query.get(log_id)
-    
-    log.clock_in = data.get('clockIn', log.clock_in)
-    log.clock_out = data.get('clockOut', log.clock_out)
+
+    log.clock_in = data.get('clockIn')
+    log.clock_out = data.get('clockOut')
 
     try:
         db.session.commit()
@@ -655,23 +660,30 @@ def add_log():
     if not user:
         return jsonify({'success': False, 'error': 'User not found'}), 404
 
+    # Require clockIn; allow missing clockOut (stored as NULL)
+    if not data.get('clockIn'):
+        return jsonify({'success': False, 'error': 'clockIn is required to add a log'}), 400
+
+    clock_out_val = data.get('clockOut')  # may be None
+
     new_log = Attendance(
         user_id = user_id,
         date = data.get('date'),
         clock_in = data.get('clockIn'),
-        clock_out = data.get('clockOut'),
+        clock_out = clock_out_val,
         is_manual = True 
     )
 
     try:
         db.session.add(new_log)
+        db.session.commit()
 
         systemLogEntry(
             action="Created",
             details=f"New attendance record added for {user.first_name} {user.last_name}."
         )
 
-        return jsonify({'success': True, 'message': 'Log updated successfully!'}), 200
+        return jsonify({'success': True, 'message': 'Log added successfully!'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': f"Error updating log: {str(e)}"}), 500
