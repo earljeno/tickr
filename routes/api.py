@@ -1059,9 +1059,10 @@ def clock_in():
 
         # 4. Early-in Rules 
         allowed_early_in = global_settings.allowed_early_in_mins if global_settings else 0
-        special_early_in = allowed_early_in
+        split_early_in = allowed_early_in // 2 if any(getattr(s, 'is_split_shift', False) for s in user_schedules) else allowed_early_in
+        special_early_in = split_early_in
 
-        # Add special 30min early-in for 7:30 AM shifts on weekday blocks (mw/tth/fri)
+        # Add special 30min early-in for 7:30 AM shifts on weekday blocks (mw/tth/fri/sat)
         if target_block in ["mw", "tth", "fri", "sat"]:
             if any(s.start_time == time(7, 30) for s in user_schedules):
                 special_early_in += 30
@@ -1084,7 +1085,7 @@ def clock_in():
 
                 # Second Shift Check (Split)
                 if getattr(sched, 'is_split_shift', False) and sched.split_start_time and sched.split_end_time:
-                    earliest_second_in = (datetime.combine(today_date, sched.split_start_time) - timedelta(minutes=allowed_early_in)).time()
+                    earliest_second_in = (datetime.combine(today_date, sched.split_start_time) - timedelta(minutes=split_early_in)).time()
                     if earliest_second_in <= now_time <= sched.split_end_time:
                         valid_schedule_start = sched.split_start_time
                         is_split_shift = True
