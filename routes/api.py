@@ -1192,7 +1192,7 @@ def clock_out():
         return check
     
     try:
-        now = now
+        now = get_now()
         actual_clock_out = now.time()
         today = now.date()
         
