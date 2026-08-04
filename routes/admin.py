@@ -4,6 +4,7 @@ from flask_login import login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from collections import defaultdict
 from datetime import datetime, timedelta, date, time
+from zoneinfo import ZoneInfo
 from models.models import db, User, Attendance, Schedule, GlobalSettings, Logs
 from sqlalchemy.exc import IntegrityError
 from flask_apscheduler import APScheduler
@@ -18,6 +19,9 @@ class Config:
 
 scheduler = APScheduler()
 
+MANILA_TZ = ZoneInfo("Asia/Manila")
+now = datetime.now(MANILA_TZ)
+
 # Auto Logout
 @admin_bp.route('/logout')
 def logout():
@@ -26,7 +30,7 @@ def logout():
     return render_template('auth/login.html')  # Redirect to login page
 
 def get_time_ago(log_time):
-    now = datetime.now()
+    now = now()
     diff = now - log_time
     seconds = diff.total_seconds()
     
@@ -49,7 +53,7 @@ from sqlalchemy import func
 
 def get_time_ago(log_time):
     """Converts a datetime object into a relative 'X minutes ago' string."""
-    now = datetime.now()
+    now = now()
     diff = now - log_time
     seconds = diff.total_seconds()
     
@@ -74,7 +78,7 @@ def dashboard():
         flash("Access Denied!", "danger")
         return redirect(url_for('auth_bp.login')) 
     
-    today = datetime.now().date()
+    today = now().date()
 
     # ==========================================
     # 1. NEW METRICS (Employees, Present, Logs)
@@ -200,7 +204,7 @@ def dashboard():
         
         # Current User & Basics
         user=current_user,
-        current_time=datetime.now().strftime("%A, %B %d, %Y"),
+        current_time=now().strftime("%A, %B %d, %Y"),
         
         # Summary Counters
         total_employees=total_employees,
@@ -257,7 +261,7 @@ def daily_logs():
         return render_template('auth/login.html')
     
     users = User.query.filter(User.role == 'gia', User.status == "active").order_by(User.first_name).all()
-    today = datetime.now().date()
+    today = now().date()
 
     return render_template('admin/daily_logs.html', today=today, users=users)
 
@@ -269,7 +273,7 @@ def manual_logs():
         flash("Access Denied!", "danger")
         return render_template('auth/login.html')
     
-    month = datetime.now().strftime("%Y-%m")
+    month = now().strftime("%Y-%m")
 
     return render_template('admin/manual_logs.html', month=month)
 
@@ -386,7 +390,7 @@ def export_pdf():
 
     return render_template(
         'admin/dtr_report.html',
-        now=datetime.now(),
+        now=now(),
         user_pairs=user_pairs,
         month=month,
         year=year,
@@ -460,7 +464,7 @@ def update_strict_mode():
     if not settings or settings.strict_duration is None:
         return
 
-    today = datetime.now().date()
+    today = now().date()
 
     if not settings.enable_strict_schedule:
         if today >= settings.strict_duration:
@@ -471,7 +475,7 @@ def update_strict_mode():
                 user_id="admin",
                 action="Update",
                 details=f"SYSTEM: Open mode expired on {today}, strict mode reactivated.",
-                timestamp=datetime.now(),
+                timestamp=now(),
             )
             db.session.add(entry)
             db.session.commit()
@@ -494,6 +498,6 @@ def audit_logs():
         flash("Unauthorized access!", "danger")
         return render_template('auth/login.html')
     
-    today = datetime.now().date()
+    today = now().date()
 
     return render_template('admin/audit_logs.html', today=today)
