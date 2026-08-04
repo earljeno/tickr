@@ -15,7 +15,8 @@ from routes.gia import WHITELIST, SPECIAL_IDS, get_client_ip
 api_bp = Blueprint('api', __name__)
 
 MANILA_TZ = ZoneInfo("Asia/Manila")
-now = datetime.now(MANILA_TZ)
+def get_now():
+    return datetime.now(MANILA_TZ)
 
 # System Log
 def systemLogEntry(action, details):
@@ -24,7 +25,7 @@ def systemLogEntry(action, details):
             action=action,
             details=details,
             user_id=getattr(current_user, 'user_id', None),
-            timestamp=now,
+            timestamp=get_now(),
             client_ip=get_client_ip()
 
         )
@@ -307,7 +308,7 @@ def export_users():
     output.seek(0)
 
     # Filename with timestamp
-    filename = f'GIA List {now.strftime("%m-%d-%Y")}.csv'
+    filename = f'GIA List {get_now().strftime("%m-%d-%Y")}.csv'
 
     return send_file(output, mimetype='text/csv', as_attachment=True, download_name=filename)
 
@@ -914,10 +915,10 @@ def status():
 
     # 4. Check if user exceeded the 60-min grace period (based on your logic)
     if strict_schedule and schedule_end:
-        now = now
+        now = get_now()
         # grace_limit is shift end + 60 mins
         grace_limit = datetime.combine(today, schedule_end) + timedelta(minutes=60)
-        if now > grace_limit:
+        if get_now() > grace_limit:
             is_grace = True
 
     # Response
@@ -1028,8 +1029,8 @@ def clock_in():
         return check
         
     try:
-        now_dt = now
-        now_time = now_dt.time()
+        now_dt = get_now()
+        now_time = get_now()_dt.time()
         today_date = now_dt.date()
         
         # 1. Map actual day to our new blocks
