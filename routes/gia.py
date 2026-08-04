@@ -1,9 +1,13 @@
 from flask import Blueprint, render_template, redirect, url_for, request, abort
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from models.models import db, Schedule, GlobalSettings
 
 gia_bp = Blueprint('gia', __name__)
+
+MANILA_TZ = ZoneInfo("Asia/Manila")
+now = datetime.now(MANILA_TZ)
 
 def check_attendance_flags(attendance_entry):
     """
@@ -117,7 +121,7 @@ def dashboard():
     if current_user.role != 'gia':
         return redirect(url_for('admin.dashboard'))
     
-    month = datetime.today().strftime("%Y-%m")
+    month = now.today().strftime("%Y-%m")
     
     return render_template('/gia/dashboard.html', user=current_user, month=month)
 

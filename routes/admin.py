@@ -30,7 +30,7 @@ def logout():
     return render_template('auth/login.html')  # Redirect to login page
 
 def get_time_ago(log_time):
-    now = now()
+    now = now
     diff = now - log_time
     seconds = diff.total_seconds()
     
@@ -53,7 +53,7 @@ from sqlalchemy import func
 
 def get_time_ago(log_time):
     """Converts a datetime object into a relative 'X minutes ago' string."""
-    now = now()
+    now = now
     diff = now - log_time
     seconds = diff.total_seconds()
     
@@ -78,7 +78,7 @@ def dashboard():
         flash("Access Denied!", "danger")
         return redirect(url_for('auth_bp.login')) 
     
-    today = now().date()
+    today = now.date()
 
     # ==========================================
     # 1. NEW METRICS (Employees, Present, Logs)
@@ -204,7 +204,7 @@ def dashboard():
         
         # Current User & Basics
         user=current_user,
-        current_time=now().strftime("%A, %B %d, %Y"),
+        current_time=now.strftime("%A, %B %d, %Y"),
         
         # Summary Counters
         total_employees=total_employees,
@@ -261,7 +261,7 @@ def daily_logs():
         return render_template('auth/login.html')
     
     users = User.query.filter(User.role == 'gia', User.status == "active").order_by(User.first_name).all()
-    today = now().date()
+    today = now.date()
 
     return render_template('admin/daily_logs.html', today=today, users=users)
 
@@ -273,7 +273,7 @@ def manual_logs():
         flash("Access Denied!", "danger")
         return render_template('auth/login.html')
     
-    month = now().strftime("%Y-%m")
+    month = now.strftime("%Y-%m")
 
     return render_template('admin/manual_logs.html', month=month)
 
@@ -390,7 +390,7 @@ def export_pdf():
 
     return render_template(
         'admin/dtr_report.html',
-        now=now(),
+        now=now,
         user_pairs=user_pairs,
         month=month,
         year=year,
@@ -464,7 +464,7 @@ def update_strict_mode():
     if not settings or settings.strict_duration is None:
         return
 
-    today = now().date()
+    today = now.date()
 
     if not settings.enable_strict_schedule:
         if today >= settings.strict_duration:
@@ -475,7 +475,7 @@ def update_strict_mode():
                 user_id="admin",
                 action="Update",
                 details=f"SYSTEM: Open mode expired on {today}, strict mode reactivated.",
-                timestamp=now(),
+                timestamp=now,
             )
             db.session.add(entry)
             db.session.commit()
@@ -498,6 +498,6 @@ def audit_logs():
         flash("Unauthorized access!", "danger")
         return render_template('auth/login.html')
     
-    today = now().date()
+    today = now.date()
 
     return render_template('admin/audit_logs.html', today=today)

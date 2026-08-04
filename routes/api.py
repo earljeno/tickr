@@ -24,7 +24,7 @@ def systemLogEntry(action, details):
             action=action,
             details=details,
             user_id=getattr(current_user, 'user_id', None),
-            timestamp=now(),
+            timestamp=now,
             client_ip=get_client_ip()
 
         )
@@ -307,7 +307,7 @@ def export_users():
     output.seek(0)
 
     # Filename with timestamp
-    filename = f'GIA List {now().strftime("%m-%d-%Y")}.csv'
+    filename = f'GIA List {now.strftime("%m-%d-%Y")}.csv'
 
     return send_file(output, mimetype='text/csv', as_attachment=True, download_name=filename)
 
@@ -914,7 +914,7 @@ def status():
 
     # 4. Check if user exceeded the 60-min grace period (based on your logic)
     if strict_schedule and schedule_end:
-        now = now()
+        now = now
         # grace_limit is shift end + 60 mins
         grace_limit = datetime.combine(today, schedule_end) + timedelta(minutes=60)
         if now > grace_limit:
@@ -1028,7 +1028,7 @@ def clock_in():
         return check
         
     try:
-        now_dt = now()
+        now_dt = now
         now_time = now_dt.time()
         today_date = now_dt.date()
         
@@ -1158,7 +1158,7 @@ def clock_out():
         return check
     
     try:
-        now = now()
+        now = now
         actual_clock_out = now.time()
         today = now.date()
         
