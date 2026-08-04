@@ -1030,7 +1030,7 @@ def clock_in():
         
     try:
         now_dt = get_now()
-        now_time = get_now()_dt.time()
+        now_time = now_dt.time()
         today_date = now_dt.date()
         
         # 1. Map actual day to our new blocks
