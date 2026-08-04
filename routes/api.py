@@ -843,90 +843,123 @@ def change_password():
 #   ░░░░░░░░░  ░░░░░ ░░░░░   ░░░░░    ░░░░░   ░░░░░ ░░░░░        ░░░░░ 
 
 
-@api_bp.route('/status', methods=['GET'])
+@api_bp.route("/status", methods=["GET"])
 @login_required
 def status():
-    user_id = request.args.get('user_id')
+    user_id = request.args.get("user_id")
 
     if not user_id:
-        return jsonify({'error': 'Missing user_id'}), 400
+        return jsonify({"error": "Missing user_id"}), 400
 
     if current_user.user_id != user_id:
-        return jsonify({'success': False, 'error': 'Access Denied'}), 403 # Changed to 403
+        return jsonify({"success": False, "error": "Access Denied"}), 403
 
-    today = date.today()
-    
-    # 1. Map actual day name to your block identifiers
-    day_name = datetime.today().strftime('%A').lower()
+    # Use Manila time for date and day determination
+    now_dt = get_now()
+    today = now_dt.date()
+
+    # 1. Map actual day name to block identifiers
+    day_name = now_dt.strftime("%A").lower()
     day_map = {
-            'monday': 'mw', 'wednesday': 'mw', 
-            'tuesday': 'tth', 'thursday': 'tth',
-            'friday': 'fri', 'saturday': 'sat'
-        }
-    target_block = day_map.get(day_name) # Will be None on Sundays
+        "monday": "mw",
+        "wednesday": "mw",
+        "tuesday": "tth",
+        "thursday": "tth",
+        "friday": "fri",
+        "saturday": "sat",
+    }
+    target_block = day_map.get(day_name)  # None on Sundays
 
     # 2. Get latest attendance for today
-    last_record = Attendance.query.filter(
-        Attendance.user_id == user_id,
-        Attendance.date == today
-    ).order_by(Attendance.id.desc()).first()
+    last_record = (
+        Attendance.query.filter(
+            Attendance.user_id == user_id, Attendance.date == today
+        )
+        .order_by(Attendance.id.desc())
+        .first()
+    )
 
-    # 3. Get today's schedule using the target_block
+    # 3. Get today's schedule using target_block
     user_schedules = []
     if target_block:
         user_schedules = Schedule.query.filter_by(
-            user_id=user_id,
-            day=target_block
+            user_id=user_id, day=target_block
         ).all()
 
-    # Check global settings for strict schedule enforcement
+    # Check global settings
     global_settings = GlobalSettings.query.first()
-    strict_schedule = bool(global_settings and global_settings.enable_strict_schedule)
+    strict_schedule = bool(
+        global_settings and global_settings.enable_strict_schedule
+    )
 
     schedule_end = None
     is_grace = False
 
     # No record = not clocked in yet
     if not last_record or not last_record.clock_in:
-        return jsonify({
-            'clocked_in': False,
-            'clocked_out': False,
-            'is_grace': False
-        }), 200
+        return (
+            jsonify(
+                {
+                    "clocked_in": False,
+                    "clocked_out": False,
+                    "is_grace": False,
+                }
+            ),
+            200,
+        )
 
     clock_in_time = last_record.clock_in
 
-    # Determine applicable shift end time
+    # 4. Determine applicable shift end time using full datetimes
     for sched in user_schedules:
         # Check first shift
         if sched.start_time and sched.end_time:
-            # Lookback 1 hour before start to 1 second before end
-            early_start = (datetime.combine(today, sched.start_time) - timedelta(hours=1)).time()
-            if early_start <= clock_in_time <= sched.end_time:
+            dt_start = datetime.combine(today, sched.start_time)
+            dt_end = datetime.combine(today, sched.end_time)
+            dt_early = dt_start - timedelta(hours=1)
+            dt_clock_in = datetime.combine(today, clock_in_time)
+
+            if dt_early <= dt_clock_in <= dt_end:
                 schedule_end = sched.end_time
                 break
 
         # Check second shift (split schedule)
-        if sched.is_split_shift and sched.split_start_time and sched.split_end_time:
-            early_second_start = (datetime.combine(today, sched.split_start_time) - timedelta(hours=1)).time()
-            if early_second_start <= clock_in_time <= sched.split_end_time:
+        if (
+            sched.is_split_shift
+            and sched.split_start_time
+            and sched.split_end_time
+        ):
+            dt_split_start = datetime.combine(today, sched.split_start_time)
+            dt_split_end = datetime.combine(today, sched.split_end_time)
+            dt_split_early = dt_split_start - timedelta(hours=1)
+            dt_clock_in = datetime.combine(today, clock_in_time)
+
+            if dt_split_early <= dt_clock_in <= dt_split_end:
                 schedule_end = sched.split_end_time
                 break
 
-    # 4. Check if user exceeded the 60-min grace period (based on your logic)
+    # 5. Check 60-min grace period (with timezone awareness)
     if strict_schedule and schedule_end:
-        now = get_now()
-        # grace_limit is shift end + 60 mins
-        grace_limit = datetime.combine(today, schedule_end) + timedelta(minutes=60)
-        if get_now() > grace_limit:
+        # Attach MANILA_TZ to avoid offset-naive/aware crash
+        grace_limit = datetime.combine(
+            today, schedule_end, tzinfo=MANILA_TZ
+        ) + timedelta(minutes=60)
+        if now_dt > grace_limit:
             is_grace = True
 
     # Response
-    return jsonify({
-        'clocked_in': bool(last_record.clock_in and not last_record.clock_out),
-        'clocked_out': bool(last_record.clock_out),
-        'is_grace': is_grace
-    }), 200
+    return (
+        jsonify(
+            {
+                "clocked_in": bool(
+                    last_record.clock_in and not last_record.clock_out
+                ),
+                "clocked_out": bool(last_record.clock_out),
+                "is_grace": is_grace,
+            }
+        ),
+        200,
+    )
 
 def serialize_records(s):
     if s.clock_in and s.clock_out:
