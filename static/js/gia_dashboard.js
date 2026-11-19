@@ -160,7 +160,7 @@ function setDashboardLoading(isLoading) {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-5">
+                    <td colspan="4" class="text-center text-muted py-5">
                         <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
                         <span>Loading attendance records...</span>
                     </td>
@@ -298,38 +298,16 @@ function renderActivityTable(records) {
     tbody.innerHTML = '';
 
     if (!records || records.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox me-2"></i>No attendance logs found for this month.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-inbox me-2"></i>No attendance logs found for this month.</td></tr>`;
         return;
     }
 
     records.forEach(record => {
         const tr = document.createElement('tr');
-        const statusText = record.status || (record.clock_in && record.clock_out ? 'Completed' : (record.clock_in && record.is_today ? 'On Duty' : 'Incomplete'));
-        const badgeType = record.badge_type || 'secondary';
-
-        let badgeClass = 'incomplete';
-        let badgeIcon = 'bi-dash-circle';
-
-        if (statusText === 'Completed' || badgeType === 'success') {
-            badgeClass = 'completed';
-            badgeIcon = 'bi-check-circle-fill';
-        } else if (statusText === 'On Duty' || badgeType === 'info') {
-            badgeClass = 'active';
-            badgeIcon = 'bi-broadcast';
-        } else {
-            badgeClass = 'incomplete';
-            badgeIcon = 'bi-dash-circle';
-        }
-
-        const statusBadge = `<span class="badge-status ${badgeClass}">
-            <i class="bi ${badgeIcon}"></i> <span>${escapeHtml(statusText)}</span>
-        </span>`;
-
         tr.innerHTML = `
             <td class="text-center font-mono fw-medium">${escapeHtml(record.date || '-')}</td>
             <td class="text-center font-mono">${escapeHtml(record.clock_in ? record.clock_in.toUpperCase() : '-')}</td>
             <td class="text-center font-mono">${escapeHtml(record.clock_out ? record.clock_out.toUpperCase() : '-')}</td>
-            <td class="text-center">${statusBadge}</td>
             <td class="text-center font-mono fw-bold">${parseFloat(record.total_hours || 0).toFixed(2)} hrs</td>
         `;
         tbody.appendChild(tr);

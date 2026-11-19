@@ -61,7 +61,6 @@ function validateInput(input) {
                 input.classList.add('is-invalid');
                 return false;
             } else {
-                input.classList.add('is-valid');
                 return true;
             }
             
@@ -70,7 +69,6 @@ function validateInput(input) {
                 input.classList.add('is-invalid');
                 return false;
             } else {
-                input.classList.add('is-valid');
                 return true;
             }
             
@@ -79,7 +77,6 @@ function validateInput(input) {
                 input.classList.add('is-invalid');
                 return false;
             } else if (value !== '') {
-                input.classList.add('is-valid');
                 return true;
             }
             break;

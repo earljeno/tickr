@@ -281,7 +281,7 @@ function renderLogsTable(records) {
     }
 
     if (!records || records.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-5">No attendance records found for this billing period.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-5">No attendance records found for this billing period.</td></tr>`;
         return;
     }
 
@@ -290,34 +290,11 @@ function renderLogsTable(records) {
         const tr = document.createElement('tr');
         const hoursNum = parseFloat(record.total_hours) || 0.0;
 
-        // Standard status badge formatting: Completed, On Duty, Incomplete
-        const statusText = record.status || (record.clock_in && record.clock_out ? 'Completed' : (record.clock_in && record.is_today ? 'On Duty' : 'Incomplete'));
-
-        let badgeClasses = 'bg-secondary-subtle text-secondary border';
-        let badgeIcon = 'bi-dash-circle';
-
-        if (statusText === 'Completed') {
-            badgeClasses = 'bg-success-subtle text-success border border-success-subtle';
-            badgeIcon = 'bi-check-circle-fill';
-        } else if (statusText === 'On Duty') {
-            badgeClasses = 'bg-primary-subtle text-primary border border-primary-subtle';
-            badgeIcon = 'bi-broadcast';
-        } else {
-            badgeClasses = 'bg-secondary-subtle text-secondary border';
-            badgeIcon = 'bi-dash-circle';
-        }
-
-        const statusBadge = `<span class="badge ${badgeClasses} d-inline-flex align-items-center gap-1">
-            <i class="bi ${badgeIcon}"></i>
-            <span>${escapeHtml(statusText)}</span>
-        </span>`;
-
         tr.innerHTML = `
             <td class="ps-4 fw-medium font-mono text-dark">${escapeHtml(record.date || '-')}</td>
             <td class="text-center font-mono">${escapeHtml(record.clock_in ? record.clock_in.toUpperCase() : '-')}</td>
             <td class="text-center font-mono">${escapeHtml(record.clock_out ? record.clock_out.toUpperCase() : '-')}</td>
-            <td class="text-center font-mono fw-bold ${hoursNum > 0 ? 'text-primary' : 'text-muted'}">${hoursNum.toFixed(2)} hrs</td>
-            <td class="text-center pe-4">${statusBadge}</td>
+            <td class="text-center pe-4 font-mono fw-bold ${hoursNum > 0 ? 'text-primary' : 'text-muted'}">${hoursNum.toFixed(2)} hrs</td>
         `;
         tbody.appendChild(tr);
     });

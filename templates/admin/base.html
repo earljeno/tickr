@@ -54,25 +54,16 @@
 
                 <li class="sidebar-menu-header">Personnel & Shifts</li>
                 <li class="sidebar-menu-item">
-                    <a class="sidebar-menu-button has-children" href="javascript:void(0);" aria-expanded="false">
+                    <a class="sidebar-menu-button" href="{{ url_for('admin.users') }}">
                         <i class="bi bi-people"></i>
-                        <span>User Management</span>
-                        <i class="bi bi-chevron-right chevron-icon"></i>
+                        <span>Users</span>
                     </a>
-                    <ul class="submenu">
-                        <li>
-                            <a class="sidebar-menu-button" href="{{ url_for('admin.users') }}">
-                                <i class="bi bi-person-lines-fill"></i>
-                                <span>View Users</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a class="sidebar-menu-button" href="{{ url_for('admin.gia_schedule') }}">
-                                <i class="bi bi-calendar3"></i>
-                                <span>GIA Schedules</span>
-                            </a>
-                        </li>
-                    </ul>
+                </li>
+                <li class="sidebar-menu-item">
+                    <a class="sidebar-menu-button" href="{{ url_for('admin.gia_schedule') }}">
+                        <i class="bi bi-calendar3"></i>
+                        <span>GIA Schedules</span>
+                    </a>
                 </li>
 
                 <li class="sidebar-menu-header">Attendance</li>
