@@ -1098,7 +1098,7 @@ def status():
     )
 
 
-def evaluate_attendance_status(record, schedules_by_block, settings=None):
+def evaluate_attendance_status(record, schedules_by_block, settings=None, current_date=None):
     """Evaluate attendance status checked against the user's assigned schedule.
 
     Returns a dict with:
@@ -1106,6 +1106,9 @@ def evaluate_attendance_status(record, schedules_by_block, settings=None):
       - badge_type: 'success', 'warning', 'danger', 'info', 'secondary'
       - details: descriptive text or matched shift window label
     """
+    if current_date is None:
+        current_date = get_now().date()
+
     if not record.clock_in and not record.clock_out:
         return {
             "status": "Incomplete",
@@ -1113,13 +1116,20 @@ def evaluate_attendance_status(record, schedules_by_block, settings=None):
             "details": "No clock-in or clock-out recorded",
         }
 
-    # Still clocked in (currently active shift)
+    # If clock_in exists but missing clock_out:
     if record.clock_in and not record.clock_out:
-        return {
-            "status": "On Duty",
-            "badge_type": "info",
-            "details": "Currently on duty",
-        }
+        if record.date == current_date:
+            return {
+                "status": "On Duty",
+                "badge_type": "info",
+                "details": "Currently on duty today",
+            }
+        else:
+            return {
+                "status": "Missing Clock Out",
+                "badge_type": "warning",
+                "details": "Clock-in recorded on previous day without a clock-out",
+            }
 
     # Map weekday to schedule block
     weekday = record.date.weekday()
@@ -1254,7 +1264,7 @@ def evaluate_attendance_status(record, schedules_by_block, settings=None):
     }
 
 
-def serialize_records(s, schedules_by_block=None, settings=None):
+def serialize_records(s, schedules_by_block=None, settings=None, current_date=None):
     if s.clock_in and s.clock_out:
         clock_in_dt = datetime.combine(s.date, s.clock_in)
         clock_out_dt = datetime.combine(s.date, s.clock_out)
@@ -1263,20 +1273,29 @@ def serialize_records(s, schedules_by_block=None, settings=None):
     else:
         t_hours = 0.0
 
+    if current_date is None:
+        current_date = get_now().date()
+
+    is_today = (s.date == current_date)
+
     schedule_eval = None
     if schedules_by_block is not None:
-        schedule_eval = evaluate_attendance_status(s, schedules_by_block, settings)
+        schedule_eval = evaluate_attendance_status(s, schedules_by_block, settings, current_date=current_date)
+
+    default_status = "Completed" if (s.clock_in and s.clock_out) else ("On Duty" if (s.clock_in and is_today) else ("Missing Clock Out" if s.clock_in else "Incomplete"))
+    default_badge = "success" if (s.clock_in and s.clock_out) else ("info" if (s.clock_in and is_today) else ("warning" if s.clock_in else "secondary"))
 
     return {
         "id": s.id,
         "date": s.date.strftime("%b %d, %Y"),
         "raw_date": s.date.strftime("%Y-%m-%d"),
+        "is_today": is_today,
         "clock_in": s.clock_in.strftime("%I:%M %p").lower() if s.clock_in else "",
         "clock_out": s.clock_out.strftime("%I:%M %p").lower() if s.clock_out else "",
         "total_hours": t_hours,
         "is_manual": bool(s.is_manual),
-        "status": schedule_eval["status"] if schedule_eval else ("Completed" if (s.clock_in and s.clock_out) else ("On Duty" if s.clock_in else "Incomplete")),
-        "badge_type": schedule_eval["badge_type"] if schedule_eval else ("success" if (s.clock_in and s.clock_out) else ("info" if s.clock_in else "secondary")),
+        "status": schedule_eval["status"] if schedule_eval else default_status,
+        "badge_type": schedule_eval["badge_type"] if schedule_eval else default_badge,
         "status_details": schedule_eval["details"] if schedule_eval else "",
     }
 
@@ -1307,17 +1326,18 @@ def gia_data():
         .all()
     )
 
+    current_date = get_now().date()
+
     # Fetch user schedules and global settings for schedule checking
     user_schedules = Schedule.query.filter_by(user_id=user_id).all()
     schedules_by_block = {s.day.lower(): s for s in user_schedules}
     global_settings = GlobalSettings.get()
 
-    user_records = [serialize_records(r, schedules_by_block, global_settings) for r in records]
+    user_records = [serialize_records(r, schedules_by_block, global_settings, current_date=current_date) for r in records]
 
     sum_hours = 0.0
     today_hours = 0.0
     active_dates = set()
-    current_date = get_now().date()
 
     for record in records:
         t_hours = 0.0

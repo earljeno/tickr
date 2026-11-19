@@ -125,16 +125,8 @@
                         {% endif %}
                     </div>
                     <div class="user-meta">
-                        <span class="user-fullname">
-                            {% if current_user and current_user.first_name %}
-                                {{ current_user.first_name }} {{ current_user.last_name }}
-                            {% else %}
-                                Administrator
-                            {% endif %}
-                        </span>
-                        <span class="user-role-badge">
-                            {{ 'GIA' if current_user and current_user.role == 'gia' else (current_user.role | capitalize if current_user else 'Admin') }}
-                        </span>
+                        <span class="user-fullname">{% if current_user and current_user.first_name %}{{ current_user.first_name }} {{ current_user.last_name }}{% else %}Administrator{% endif %}</span>
+                        <span class="user-role-badge">{{ 'GIA' if current_user and current_user.role == 'gia' else (current_user.role | capitalize if current_user else 'Admin') }}</span>
                     </div>
                 </a>
                 <a href="{{ url_for('auth.logout') }}" class="sidebar-logout-btn" title="Sign Out" aria-label="Sign Out">

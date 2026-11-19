@@ -240,6 +240,8 @@ body {
 .user-meta {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
   overflow: hidden;
 }
 
@@ -250,12 +252,19 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
+  line-height: 1.25;
 }
 
 .user-role-badge {
   font-size: 0.6875rem;
   color: var(--text-muted, #64748b);
   text-transform: capitalize;
+  text-align: left;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1.2;
+  letter-spacing: normal;
 }
 
 .sidebar-logout-btn {
