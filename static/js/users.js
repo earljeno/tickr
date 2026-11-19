@@ -213,16 +213,44 @@ function loadUsers() {
 
     const tbody = document.getElementById('usersTableBody');
     const showingInfo = document.getElementById('usersShowingInfo');
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center py-5 text-muted">
-                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                    Loading users...
-                </td>
-            </tr>
-        `;
+    const tableContainer = tbody ? tbody.closest('.table-responsive') : null;
+    const hasExistingRows = tbody && tbody.querySelectorAll('tr').length > 0 && !tbody.querySelector('.spinner-border');
+
+    if (tableContainer) {
+        tableContainer.classList.add('table-loading-container');
     }
+
+    if (hasExistingRows) {
+        // Retain existing rows so the table height does not collapse during pagination/fetching
+        if (tableContainer) {
+            tableContainer.classList.add('is-loading-data');
+            let overlay = tableContainer.querySelector('.table-loading-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'table-loading-overlay';
+                overlay.innerHTML = `
+                    <div class="table-loading-badge">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span>Loading user accounts...</span>
+                    </div>
+                `;
+                tableContainer.appendChild(overlay);
+            }
+        }
+    } else {
+        // Initial load or empty state fallback
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                        Loading users...
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
     if (showingInfo) {
         showingInfo.textContent = 'Loading user records...';
     }
@@ -242,9 +270,14 @@ function loadUsers() {
         })
         .catch(err => {
             console.error('Failed to load users:', err);
-            document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-4">Unable to load users.</td></tr>';
+            document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">Unable to load users.</td></tr>';
             document.getElementById('usersShowingInfo').textContent = 'Unable to load users.';
             document.getElementById('usersPagination').innerHTML = '';
+        })
+        .finally(() => {
+            if (tableContainer) {
+                tableContainer.classList.remove('is-loading-data');
+            }
         });
 }
 

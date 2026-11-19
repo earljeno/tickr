@@ -294,15 +294,46 @@ function updateModalWorkloadValidation() {
 // -----------------------------------------------------------------------------
 async function loadSchedules() {
     const tbody = document.getElementById('scheduleTableBody');
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center py-5 text-muted">
-                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                    Loading schedule matrix...
-                </td>
-            </tr>
-        `;
+    const showingInfo = document.getElementById('scheduleShowingInfo');
+    const tableContainer = tbody ? tbody.closest('.table-responsive') : null;
+    const hasExistingRows = tbody && tbody.querySelectorAll('tr').length > 0 && !tbody.querySelector('.spinner-border');
+
+    if (tableContainer) {
+        tableContainer.classList.add('table-loading-container');
+    }
+
+    if (hasExistingRows) {
+        // Keep existing rows visible to preserve table height while paginating
+        if (tableContainer) {
+            tableContainer.classList.add('is-loading-data');
+            let overlay = tableContainer.querySelector('.table-loading-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'table-loading-overlay';
+                overlay.innerHTML = `
+                    <div class="table-loading-badge">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span>Loading schedules...</span>
+                    </div>
+                `;
+                tableContainer.appendChild(overlay);
+            }
+        }
+    } else {
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                        Loading schedule matrix...
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    if (showingInfo && !hasExistingRows) {
+        showingInfo.textContent = 'Loading schedules...';
     }
 
     try {
@@ -435,6 +466,10 @@ async function loadSchedules() {
         const tbody = document.getElementById('scheduleTableBody');
         if (tbody) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-danger">Unable to load schedules. Please click Refresh.</td></tr>';
+        }
+    } finally {
+        if (tableContainer) {
+            tableContainer.classList.remove('is-loading-data');
         }
     }
 }

@@ -35,17 +35,43 @@ function loadLogs(page = 1) {
 
     const tbody = document.getElementById('auditLogsTableBody');
     const showingInfo = document.querySelector('.showing-info');
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="4" class="text-center py-5 text-muted">
-                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                    Loading audit logs...
-                </td>
-            </tr>
-        `;
+    const tableContainer = tbody ? tbody.closest('.table-responsive') : null;
+    const hasExistingRows = tbody && tbody.querySelectorAll('tr').length > 0 && !tbody.querySelector('.spinner-border');
+
+    if (tableContainer) {
+        tableContainer.classList.add('table-loading-container');
     }
-    if (showingInfo) showingInfo.textContent = 'Loading audit logs...';
+
+    if (hasExistingRows) {
+        // Keep existing rows visible so the table height does not shrink while fetching
+        if (tableContainer) {
+            tableContainer.classList.add('is-loading-data');
+            let overlay = tableContainer.querySelector('.table-loading-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'table-loading-overlay';
+                overlay.innerHTML = `
+                    <div class="table-loading-badge">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span>Loading audit logs...</span>
+                    </div>
+                `;
+                tableContainer.appendChild(overlay);
+            }
+        }
+    } else {
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                        Loading audit logs...
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    if (showingInfo && !hasExistingRows) showingInfo.textContent = 'Loading audit logs...';
 
     fetch(`/api/get-logs?${params.toString()}`)
         .then(res => {
@@ -114,6 +140,11 @@ function loadLogs(page = 1) {
                 </tr>
             `;
             showingInfo.textContent = 'Unable to load audit logs.';
+        })
+        .finally(() => {
+            if (tableContainer) {
+                tableContainer.classList.remove('is-loading-data');
+            }
         });
 }
 
