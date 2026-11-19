@@ -1,0 +1,246 @@
+{% extends "admin/base.html" %}
+
+{% block title %}GIA Logs & Analytics - Tickr{% endblock %}
+
+{% set breadcrumb1 = "Attendance" %}
+{% set breadcrumb2 = "GIA Logs & Analytics" %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Page Header -->
+    <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <div class="page-title">
+            <h1 class="mb-1">GIA Logs & Analytics</h1>
+            <p class="text-muted">In-depth attendance history, rendered hour metrics, and punctuality flags for student assistants</p>
+        </div>
+        <div class="page-actions d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-secondary" id="refreshBtn" title="Reload current assistant data">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span>Refresh</span>
+            </button>
+            <button class="btn btn-outline-primary" id="exportCsvBtn" title="Download CSV logs for selected assistant and month">
+                <i class="bi bi-filetype-csv"></i>
+                <span>Export CSV</span>
+            </button>
+            <a class="btn btn-primary" id="exportPdfBtn" href="{{ url_for('admin.export_pdf', user_id=selected_user_id, month=selected_month) }}" target="_blank" title="Official Form 48 DTR Print / PDF">
+                <i class="bi bi-printer-fill"></i>
+                <span>Print DTR Card</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Assistant & Month Selector Toolbar -->
+    <div class="content-card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-5 col-md-6">
+                    <label for="giaSelector" class="form-label">Select Student Assistant (GIA)</label>
+                    <select class="form-select fw-medium" id="giaSelector">
+                        {% for gia in gia_users %}
+                        <option value="{{ gia.user_id }}" {% if gia.user_id == selected_user_id %}selected{% endif %}>
+                            {{ gia.last_name }}, {{ gia.first_name }} ({{ gia.user_id }}) {% if gia.status != 'active' %}[Inactive]{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <label for="monthFilter" class="form-label">Billing Month</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-calendar3"></i></span>
+                        <input type="month" class="form-control border-start-0 fw-semibold" id="monthFilter" value="{{ selected_month }}">
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-2 col-sm-6 d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm flex-fill" id="btnCurrentMonth">Current Month</button>
+                    <button class="btn btn-outline-secondary btn-sm flex-fill" id="btnPrevMonth">Prev Month</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assistant Profile Snippet Banner -->
+    <div class="content-card mb-4">
+        <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon total-icon" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                    <i class="bi bi-person-badge-fill"></i>
+                </div>
+                <div>
+                    <h4 class="mb-0 fw-bold" id="assistantFullName">
+                        {% if selected_gia %}{{ selected_gia.first_name }} {{ selected_gia.last_name }}{% else %}No Assistant Selected{% endif %}
+                    </h4>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mt-1 text-muted small">
+                        <span>ID: <strong class="text-dark font-mono" id="assistantUserId">{{ selected_user_id }}</strong></span>
+                        <span>•</span>
+                        <span>Lab: <span id="assistantLab">{% if selected_gia and selected_gia.laboratory %}Room {{ selected_gia.laboratory }}{% else %}Not Assigned{% endif %}</span></span>
+                        <span>•</span>
+                        <span class="badge {% if selected_gia and selected_gia.status == 'active' %}bg-success-subtle text-success border border-success-subtle{% else %}bg-secondary-subtle text-secondary border{% endif %}" id="assistantStatusBadge">
+                            {% if selected_gia %}{{ selected_gia.status|capitalize }}{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">Target Quota:</span>
+                <span class="badge bg-light text-primary border font-mono fs-6 px-3 py-1">100.00 hrs / month</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics KPI Cards -->
+    <section class="stats-section mb-4" aria-label="GIA Attendance KPI Summary">
+        <div class="row g-3">
+            <div class="col-xl-3 col-sm-6">
+                <div class="stat-card h-100">
+                    <div class="stat-header">
+                        <span class="stat-title">Rendered Hours</span>
+                        <div class="stat-icon total-icon">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="kpiRenderedHours">0.00</div>
+                    <div class="progress mt-2" style="height: 6px;">
+                        <div class="progress-bar bg-primary" id="kpiProgressBar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="stat-change text-muted mt-2">
+                        <span id="kpiProgressPercent">0%</span> of 100 hr quota
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6">
+                <div class="stat-card h-100">
+                    <div class="stat-header">
+                        <span class="stat-title">Hours Remaining</span>
+                        <div class="stat-icon late-icon">
+                            <i class="bi bi-hourglass-split"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="kpiRemainingHours">100.00</div>
+                    <div class="stat-change text-muted">
+                        <i class="bi bi-info-circle text-primary"></i> Target completion deficit
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6">
+                <div class="stat-card h-100">
+                    <div class="stat-header">
+                        <span class="stat-title">Active Days</span>
+                        <div class="stat-icon present-icon">
+                            <i class="bi bi-calendar-check-fill"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="kpiActiveDays">0</div>
+                    <div class="stat-change text-muted">
+                        <i class="bi bi-activity text-success"></i> Days with recorded duty
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6">
+                <div class="stat-card h-100">
+                    <div class="stat-header">
+                        <span class="stat-title">Punctuality Flags</span>
+                        <div class="stat-icon" style="background-color: #fef2f2; color: #dc2626;">
+                            <i class="bi bi-flag-fill"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value text-danger" id="kpiFlagsCount">0</div>
+                    <div class="stat-change text-muted" id="kpiFlagsBreakdown">
+                        <span>Late: 0</span> • <span>Early Out: 0</span> • <span>OT: 0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Daily Hours Bar Trend Visualizer -->
+    <div class="content-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Daily Rendered Hours Trend</h2>
+            <span class="badge bg-light text-secondary border font-mono small" id="trendMonthBadge">Month Overview</span>
+        </div>
+        <div class="card-body">
+            <div id="chartContainer" class="p-2" style="overflow-x: auto;">
+                <div id="chartBars" class="d-flex align-items-end gap-2 pb-2" style="min-width: 600px; height: 180px;">
+                    <!-- Rendered dynamically by gia_logs.js -->
+                </div>
+            </div>
+            <div class="d-flex justify-content-between text-muted small mt-2 pt-2 border-top">
+                <span><i class="bi bi-square-fill text-primary me-1"></i> Rendered Duty Hours</span>
+                <span>Max: <strong id="trendMaxHours" class="text-dark font-mono">0.00</strong> hrs / day</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Inconsistency Flags Panel -->
+    <div class="content-card mb-4" id="flagsCard" style="display: none;">
+        <div class="card-header d-flex justify-content-between align-items-center bg-danger-subtle border-danger-subtle">
+            <h2 class="mb-0 text-danger-emphasis"><i class="bi bi-exclamation-triangle-fill me-2"></i>Recorded Attendance Flags</h2>
+            <span class="badge bg-danger text-white font-mono" id="flagsBadgeCount">0 Flags</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Date</th>
+                            <th class="text-center">Flag Issue</th>
+                            <th>Details & Inconsistency Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flagsTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Logs Table -->
+    <div class="content-card">
+        <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h2 class="mb-1">Time Log Entries</h2>
+                <small class="text-muted">Verified daily attendance records for the selected billing month</small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-light text-secondary border font-mono" id="logsCountBadge">0 Records</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Shift Date</th>
+                            <th class="text-center">Clock In</th>
+                            <th class="text-center">Clock Out</th>
+                            <th class="text-center">Rendered Hours</th>
+                            <th class="text-center pe-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="giaLogsTableBody">
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                Loading attendance history...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center text-muted small">
+            <span><i class="bi bi-shield-check me-1"></i> Data validated against system attendance kiosk timestamps.</span>
+            <span>Total: <strong id="tableTotalHours" class="text-dark font-mono">0.00</strong> hrs</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/gia_logs.js') }}"></script>
+{% endblock %}

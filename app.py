@@ -1,100 +1,151 @@
-import os
-from datetime import timedelta
 import logging
-from flask import Flask, session, render_template, redirect, url_for
-from flask_session import Session
+import os
+
+import click
+from flask import Flask, redirect, render_template, url_for
 from flask_login import LoginManager, current_user
-from werkzeug.security import generate_password_hash as _
 from flask_migrate import Migrate
 from sqlalchemy.exc import OperationalError
-from waitress import serve
-from routes.gia import gia_bp
-from routes.auth import auth_bp
+
+from config import Config, config_by_name
+from flask_session import Session
+from models.models import GlobalSettings, User, db
 from routes.admin import admin_bp
 from routes.api import api_bp
-from datetime import datetime
-
-from models.models import db, User, GlobalSettings
-from config import Config
+from routes.auth import auth_bp
+from routes.gia import gia_bp
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger("tickr")
 
-# Initialize Flask app
-app = Flask(__name__)
-app.config.from_object(Config)
-
-# Ensure session storage directory exists
-os.makedirs("./flask_session", exist_ok=True)
-app.config['SESSION_TYPE'] = 'filesystem'  # Store session data in files
-app.config['SESSION_PERMANENT'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)  # Auto logout after 10 minutes
-app.config['SESSION_FILE_DIR'] = "./flask_session"
-Session(app)
-
-# Initialize database and migration
-db.init_app(app)
-migrate = Migrate(app, db)
-
-# Initialize login manager
+migrate = Migrate()
 login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'index'
 
-# Register Blueprints
-app.register_blueprint(gia_bp)
-app.register_blueprint(auth_bp, url_prefix='/auth')
-app.register_blueprint(admin_bp, url_prefix='/admin')
-app.register_blueprint(api_bp, url_prefix='/api')
 
-@app.route('/')
-def index():
-    if current_user.is_authenticated:
-        if current_user.role in ['superadmin', 'admin']:
-            return redirect(url_for('admin.dashboard'))
+def create_app(config_object=None) -> Flask:
+    """Application factory for Tickr."""
+    app = Flask(__name__)
 
-    return render_template('/auth/login.html')
+    # Determine configuration
+    if config_object is None:
+        env_mode = os.getenv("FLASK_ENV", "default").lower()
+        config_object = config_by_name.get(env_mode, Config)
 
-# Error handling
-@app.errorhandler(OperationalError)
-def maintenance_mode(e):
-    logging.error(f"Database Error: {str(e)}")
-    return render_template("maintenance.html"), 503
+    app.config.from_object(config_object)
 
-# User loader for Flask-Login
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.filter_by(user_id=user_id).first()
+    # Initialize extensions
+    db.init_app(app)
+    migrate.init_app(app, db)
 
-# Database initialization (to be run separately in setup scripts)
-def initialize_database():
-    with app.app_context():
+    # Initialize session store
+    if app.config.get("SESSION_TYPE") == "filesystem":
+        session_dir = app.config.get("SESSION_FILE_DIR", "./flask_session")
+        os.makedirs(session_dir, exist_ok=True)
+        Session(app)
 
+    # Initialize Flask-Login
+    login_manager.init_app(app)
+    login_manager.login_view = "index"
+
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        from flask import jsonify, request
+        if request.is_json or request.path.startswith("/api/"):
+            return jsonify({"success": False, "error": "Authentication required."}), 401
+        return redirect(url_for(login_manager.login_view))
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.filter_by(user_id=str(user_id)).first()
+
+    # Register blueprints
+    app.register_blueprint(gia_bp)
+    app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(api_bp, url_prefix="/api")
+
+    # Main entry route
+    @app.route("/")
+    def index():
+        if current_user.is_authenticated:
+            if current_user.role in ["superadmin", "admin"]:
+                return redirect(url_for("admin.dashboard"))
+            if current_user.role == "gia":
+                return redirect(url_for("gia.dashboard"))
+        return render_template("auth/login.html")
+
+    # Error handling
+    @app.errorhandler(OperationalError)
+    def maintenance_mode(e):
+        logger.error(f"Database Error: {e}")
+        return render_template("maintenance.html"), 503
+
+    # Register CLI commands
+    register_commands(app)
+
+    return app
+
+
+def register_commands(app: Flask):
+    """Register custom Flask CLI commands."""
+
+    @app.cli.command("init-db")
+    def init_db_cmd():
+        """Initialize database tables and create initial settings."""
         db.create_all()
+        GlobalSettings.get_or_create()
+        click.echo("Database initialized successfully.")
 
-        exec(
-            "a=db.session;"
-            "b=User;"
-            "c='user_id';"
-            "d='admin';"
-            "e=a.execute(db.select(b).filter_by(**{c:d})).scalar_one_or_none();"
-            "f='superadmin';"
-            "g='first_name';"
-            "h='last_name';"
-            "i='middle_name';"
-            "j='password';"
-            "k='role';"
-            "l='Super';"
-            "m='Admin';"
-            "n='admin123';"
-            "o='id';"
-            "p=1;"
-            "e or (a.add_all([b(**{o:p,c:f,g:l,h:m,i:None,j:_(n),k:f})]),a.commit())"
-        )
+    @app.cli.command("seed-admin")
+    @click.option("--username", default=None, help="Superadmin username (defaults to SUPERADMIN_USER or 'superadmin')")
+    @click.option("--password", default=None, help="Superadmin password (defaults to SUPERADMIN_PASS or 'admin123')")
+    def seed_admin_cmd(username, password):
+        """Create or verify the default superadmin account."""
+        admin_user = username or os.getenv("SUPERADMIN_USER", "superadmin")
+        admin_pass = password or os.getenv("SUPERADMIN_PASS", "admin123")
 
-# Run Flask App
-if __name__ == '__main__':
-    # initialize_database()
+        existing = User.query.filter_by(user_id=admin_user).first()
+        if not existing:
+            new_admin = User(
+                user_id=admin_user,
+                first_name="Super",
+                last_name="Admin",
+                role="superadmin",
+                status="active",
+            )
+            new_admin.set_password(admin_pass)
+            db.session.add(new_admin)
+            db.session.commit()
+            click.echo(f"Created default superadmin user '{admin_user}'.")
+        else:
+            click.echo(f"Superadmin user '{admin_user}' already exists.")
 
-    # serve(app, host='0.0.0.0', port=5001)
-    app.run(host='0.0.0.0', port=3005, debug=True)
+
+# Top-level application instance for WSGI servers (waitress, gunicorn)
+app = create_app()
+
+if __name__ == "__main__":
+    with app.app_context():
+        # Ensure tables exist in development / standalone run
+        db.create_all()
+        GlobalSettings.get_or_create()
+
+        # Seed superadmin if none exists
+        default_admin = os.getenv("SUPERADMIN_USER", "superadmin")
+        default_pass = os.getenv("SUPERADMIN_PASS", "admin123")
+        if not User.query.filter_by(user_id=default_admin).first():
+            admin = User(
+                user_id=default_admin,
+                first_name="Super",
+                last_name="Admin",
+                role="superadmin",
+                status="active",
+            )
+            admin.set_password(default_pass)
+            db.session.add(admin)
+            db.session.commit()
+            logger.info(f"Initialized default superadmin '{default_admin}'.")
+
+    port = int(os.getenv("PORT", "3005"))
+    app.run(host="0.0.0.0", port=port, debug=True)

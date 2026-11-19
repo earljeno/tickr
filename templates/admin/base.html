@@ -2,266 +2,198 @@
 <html lang="en">
 
 <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>{% block title %}Tickr{% endblock %}</title>
-    <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>{% block title %}Tickr Admin{% endblock %}</title>
 
     <link rel="shortcut icon" href="{{ url_for('static', filename='media/ndmu_logo.png') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <!-- Typography: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Core Bootstrap 5 -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Design System Theme, Base Layout, and Component Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head %}{% endblock %}
 </head>
 
 <body>
-    <aside class="sidebar" id="sidebar">
+    <!-- Accessibility Skip Link -->
+    <a href="#main-content" class="visually-hidden-focusable btn btn-primary position-absolute top-0 start-0 m-2 z-3">
+        Skip to main content
+    </a>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
         <div class="sidebar-header">
-            <a href="{{ url_for('admin.dashboard') }}">
-                <img src="https://sms.ndmu.edu.ph/assets/site/images/gakkousoft_logos/l_bordered.png" alt="NDMU Logo">
-                <span>TICKR ADMIN</span>
+            <a href="{{ url_for('admin.dashboard') }}" class="brand-link">
+                <img src="{{ url_for('static', filename='media/ndmu_logo.png') }}" alt="NDMU Logo" class="brand-logo">
+                <div class="brand-info">
+                    <span class="brand-name">TICKR</span>
+                    <span class="brand-badge">ADMIN</span>
+                </div>
             </a>
-            <hr class="devider" />
         </div>
 
-        <ul class="sidebar-menu">
-            <li class="sidebar-menu-item">
-                <a class="sidebar-menu-button" href="{{ url_for('admin.dashboard') }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-house-door" viewBox="0 0 16 16">
-                        <path
-                            d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4z" />
-                    </svg>
-                    <span>Dashboard</span>
-                </a>
-            </li>
-
-            <!-- User Management -->
-            <li class="sidebar-menu-item">
-                <a class="sidebar-menu-button has-children" href="javascript:void(0);">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-people" viewBox="0 0 16 16">
-                        <path
-                            d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1zm-7.978-1L7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002-.014.002zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0M6.936 9.28a6 6 0 0 0-1.23-.247A7 7 0 0 0 5 9c-4 0-5 3-5 4q0 1 1 1h4.216A2.24 2.24 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816M4.92 10A5.5 5.5 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0m3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4" />
-                    </svg>
-                    <span>User Management</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="lucide lucide-chevron-right ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90">
-                        <path d="m9 18 6-6-6-6"></path>
-                    </svg>
-                </a>
-                <ul class="submenu">
-                    <li><a class="sidebar-menu-button" href="{{ url_for('admin.users') }}"><span>View Users</span></a>
-                    </li>
-                    <li><a class="sidebar-menu-button" href="{{ url_for('admin.gia_schedule') }}"><span>GIA
-                                Schedules</span></a></li>
-                </ul>
-            </li>
-
-            <!-- Time Logs -->
-            <li class="sidebar-menu-item">
-                <a class="sidebar-menu-button has-children" href="javascript:void(0);">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-clock-history" viewBox="0 0 16 16">
-                        <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z" />
-                        <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z" />
-                        <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5" />
-                    </svg>
-                    <span>Time Logs</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="lucide lucide-chevron-right ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90">
-                        <path d="m9 18 6-6-6-6"></path>
-                    </svg>
-                </a>
-                <ul class="submenu">
-                    <li><a class="sidebar-menu-button" href="{{ url_for('admin.daily_logs') }}"><span>Daily
-                                Logs</span></a></li>
-                    <!-- <li><a class="sidebar-menu-button" href="{{ url_for('admin.manual_logs') }}"><span>Manual
-                                Logs</span></a></li> -->
-                </ul>
-            </li>
-
-            <!-- Reports -->
-            <li class="sidebar-menu-item">
-                <a class="sidebar-menu-button has-children" href="javascript:void(0);">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-file-earmark-bar-graph" viewBox="0 0 16 16">
-                        <path d="M10 13.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5zm-2.5.5a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5zm-3 0a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5z" />
-                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
-                    </svg>
-                    <span>Reports</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="lucide lucide-chevron-right ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90">
-                        <path d="m9 18 6-6-6-6"></path>
-                    </svg>
-                </a>
-                <ul class="submenu">
-                    <li><a class="sidebar-menu-button" href="{{ url_for('admin.export_dtr') }}"><span>Export to PDF</span></a></li>
-                </ul>
-            </li>
-
-            <!-- Audit Logs -->
-            <li class="sidebar-menu-item">
-                <a class="sidebar-menu-button" href="{{ url_for('admin.audit_logs') }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-clipboard-data" viewBox="0 0 16 16">
-                        <path d="M4 11a1 1 0 1 1 2 0v1a1 1 0 1 1-2 0zm6-4a1 1 0 1 1 2 0v5a1 1 0 1 1-2 0zM7 9a1 1 0 0 1 2 0v3a1 1 0 1 1-2 0z" />
-                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z" />
-                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z" />
-                    </svg>
-                    <span>Audit Logs</span>
-                </a>
-            </li>
-
-            <a class="sidebar-menu-button" href="{{ url_for('admin.settings') }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sliders2" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M10.5 1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4H1.5a.5.5 0 0 1 0-1H10V1.5a.5.5 0 0 1 .5-.5M12 3.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m-6.5 2A.5.5 0 0 1 6 6v1.5h8.5a.5.5 0 0 1 0 1H6V10a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5M1 8a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2A.5.5 0 0 1 1 8m9.5 2a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V13H1.5a.5.5 0 0 1 0-1H10v-1.5a.5.5 0 0 1 .5-.5m1.5 2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5"/>
-                </svg>
-                <span>Settings</span>
-            </a>
-
-            <!-- Sticky Bottom Section -->
-            <li class="sidebar-menu-bottom">
-                <a class="sidebar-menu-button" href="{{ url_for('admin.profile') }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
-                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/>
-                    </svg>
-                    <span>Profile</span>
-                </a>
-
-                <a class="sidebar-menu-button" href="{{ url_for('auth.logout') }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-left" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M6 12.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v2a.5.5 0 0 1-1 0v-2A1.5 1.5 0 0 1 6.5 2h8A1.5 1.5 0 0 1 16 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 5 12.5v-2a.5.5 0 0 1 1 0z"/>
-                    <path fill-rule="evenodd" d="M.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L1.707 7.5H10.5a.5.5 0 0 1 0 1H1.707l2.147 2.146a.5.5 0 0 1-.708.708z"/>
-                    </svg>
-                    <span>Logout</span>
-                </a>
-            </li>
-        </ul>
-
-
-        <div class="sidebar-footer" hidden>
-
-            <button data-bs-toggle="dropdown" aria-expanded="false">
-                <p class="sidebar-footer-menu-header-text">EJ</p>
-
-                <div>
-                    <h4 class="sidebar-footer-name">GARCIA EJ.</h4>
-                    <p class="sidebar-footer-email">ejmgarcia@ndmu.edu.ph</p>
-                </div>
-
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="lucide lucide-chevrons-up-down ml-auto size-4">
-                    <path d="m7 15 5 5 5-5"></path>
-                    <path d="m7 9 5-5 5 5"></path>
-                </svg>
-            </button>
-
-            <ul class="dropdown-menu p-0">
-                <div class="sidebar-footer-menu-header">
-                    <p class="sidebar-footer-menu-header-text">EJ</p>
-
-                    <div>
-                        <h4 class="sidebar-footer-name">GARCIA EJ.</h4>
-                        <p class="sidebar-footer-email">ejmgarcia@ndmu.edu.ph</p>
-                    </div>
-                </div>
-
-                <div class="devide"></div>
-
-                <!-- Dropdown menu links -->
-                <div class="dropdown-menu-group">
-                    <a class="dropdown-item" href="https://sms.ndmu.edu.ph/my_portal/profile">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="tabler-icon tabler-icon-user-circle ">
-                            <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
-                            <path d="M12 10m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>
-                            <path d="M6.168 18.849a4 4 0 0 1 3.832 -2.849h4a4 4 0 0 1 3.834 2.855"></path>
-                        </svg>
-                        <span>Profile</span>
+        <nav class="sidebar-nav" aria-label="Admin Navigation">
+            <ul class="sidebar-menu">
+                <li class="sidebar-menu-header">Overview</li>
+                <li class="sidebar-menu-item">
+                    <a class="sidebar-menu-button" href="{{ url_for('admin.dashboard') }}">
+                        <i class="bi bi-grid-1x2"></i>
+                        <span>Dashboard</span>
                     </a>
-                    <a class="dropdown-item" href="https://sms.ndmu.edu.ph/my_portal/settings">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="tabler-icon tabler-icon-settings ">
-                            <path
-                                d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z">
-                            </path>
-                            <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path>
-                        </svg>
+                </li>
+
+                <li class="sidebar-menu-header">Personnel & Shifts</li>
+                <li class="sidebar-menu-item">
+                    <a class="sidebar-menu-button has-children" href="javascript:void(0);" aria-expanded="false">
+                        <i class="bi bi-people"></i>
+                        <span>User Management</span>
+                        <i class="bi bi-chevron-right chevron-icon"></i>
+                    </a>
+                    <ul class="submenu">
+                        <li>
+                            <a class="sidebar-menu-button" href="{{ url_for('admin.users') }}">
+                                <i class="bi bi-person-lines-fill"></i>
+                                <span>View Users</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sidebar-menu-button" href="{{ url_for('admin.gia_schedule') }}">
+                                <i class="bi bi-calendar3"></i>
+                                <span>GIA Schedules</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li class="sidebar-menu-header">Attendance</li>
+                <li class="sidebar-menu-item">
+                    <a class="sidebar-menu-button" href="{{ url_for('admin.daily_logs') }}">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Daily Logs</span>
+                    </a>
+                </li>
+                <li class="sidebar-menu-item">
+                    <a class="sidebar-menu-button" href="{{ url_for('admin.gia_logs') }}">
+                        <i class="bi bi-bar-chart-line"></i>
+                        <span>GIA Logs & Analytics</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-menu-header">Records & System</li>
+                <li class="sidebar-menu-item">
+                    <a class="sidebar-menu-button" href="{{ url_for('admin.export_dtr') }}">
+                        <i class="bi bi-file-earmark-arrow-down"></i>
+                        <span>Export to PDF</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-menu-item">
+                    <a class="sidebar-menu-button" href="{{ url_for('admin.audit_logs') }}">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Audit Logs</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-menu-item">
+                    <a class="sidebar-menu-button" href="{{ url_for('admin.settings') }}">
+                        <i class="bi bi-sliders2"></i>
                         <span>Settings</span>
                     </a>
-                </div>
-
-                <div class="devide"></div>
-
-                <div class="dropdown-menu-group">
-                    <a class="dropdown-item" href="https://sms.ndmu.edu.ph/auth/logout">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="tabler-icon tabler-icon-logout ">
-                            <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2">
-                            </path>
-                            <path d="M9 12h12l-3 -3"></path>
-                            <path d="M18 15l3 -3"></path>
-                        </svg>
-                        <span>Log out</span>
-                    </a>
-                </div>
+                </li>
             </ul>
+        </nav>
+
+        <!-- User profile in sidebar footer -->
+        <div class="sidebar-footer">
+            <div class="sidebar-user-card">
+                <a href="{{ url_for('admin.profile') }}" class="user-profile-link" title="Manage Profile">
+                    <div class="user-avatar-mini">
+                        {% if current_user and current_user.first_name and current_user.last_name %}
+                            {{ current_user.first_name[0] | upper }}{{ current_user.last_name[0] | upper }}
+                        {% else %}
+                            AD
+                        {% endif %}
+                    </div>
+                    <div class="user-meta">
+                        <span class="user-fullname">
+                            {% if current_user and current_user.first_name %}
+                                {{ current_user.first_name }} {{ current_user.last_name }}
+                            {% else %}
+                                Administrator
+                            {% endif %}
+                        </span>
+                        <span class="user-role-badge">
+                            {{ 'GIA' if current_user and current_user.role == 'gia' else (current_user.role | capitalize if current_user else 'Admin') }}
+                        </span>
+                    </div>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="sidebar-logout-btn" title="Sign Out" aria-label="Sign Out">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
+            </div>
         </div>
     </aside>
 
+    <!-- Mobile Navigation Overlay -->
     <div class="overlay" id="overlay"></div>
 
-    <main class="main">
-        <header id="main-header">
-            <div id="header-wrapper">
-                <button id="sidebarToggler">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="lucide lucide-panel-left">
-                        <rect width="18" height="18" x="3" y="3" rx="2"></rect>
-                        <path d="M9 3v18"></path>
-                    </svg>
-                </button>
+    <!-- Main Content Area -->
+    <div class="main">
+        <header id="main-header" class="main-topbar">
+            <div id="header-wrapper" class="topbar-inner">
+                <div class="topbar-left">
+                    <button id="sidebarToggler" class="sidebar-toggle-btn" aria-label="Toggle navigation menu">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
 
-                <div class="vertical"></div>
+                    <div class="topbar-divider"></div>
 
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        {% block breadcrumbs %}
-                        {% if breadcrumb1 %}
-                        <li class="breadcrumb-items">
-                            <p>{{ breadcrumb1 }}</p>
-                        </li>
-                        {% endif %}
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            {% block breadcrumbs %}
+                            {% if breadcrumb1 %}
+                            <li class="breadcrumb-item">
+                                <span>{{ breadcrumb1 }}</span>
+                            </li>
+                            {% endif %}
+                            {% if breadcrumb2 %}
+                            <li class="breadcrumb-item active" aria-current="page">
+                                <span>{{ breadcrumb2 }}</span>
+                            </li>
+                            {% endif %}
+                            {% endblock %}
+                        </ol>
+                    </nav>
+                </div>
 
-                        {% if breadcrumb2 %}
-                        <li class="breadcrumb-items" role="presentation">
-                            <i class="bi bi-chevron-right"></i>
-                        </li>
-                        <li class="breadcrumb-items">
-                            <p>{{ breadcrumb2 }}</p>
-                        </li>
-                        {% endif %}
-                        {% endblock %}
-                    </ol>
-                </nav>
+                <div class="topbar-right">
+                    <div class="d-none d-sm-flex align-items-center gap-2 text-muted small">
+                        <i class="bi bi-shield-lock-fill text-success"></i>
+                        <span>NDMU Computer Center</span>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <div class="content">
+        <main id="main-content" class="content-wrapper">
             {% block content %}{% endblock %}
-        </div>
-    </main>
+        </main>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Core Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+    {% block scripts %}{% endblock %}
 </body>
 
 </html>

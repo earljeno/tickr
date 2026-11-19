@@ -1,235 +1,153 @@
 {% extends "admin/base.html" %}
 
-{% block title %}Admin Dashboard{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block title %}Admin Profile - Tickr{% endblock %}
 
 {% set breadcrumb1 = "Profile" %}
 {% set breadcrumb2 = "" %}
 
 {% block content %}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+<div class="main-container">
+    <!-- Page Header -->
+    <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <div class="page-title">
+            <h1 class="mb-1">Account & Security</h1>
+            <p class="text-muted">Manage your administrative credentials and security settings</p>
+        </div>
+        <div class="page-actions">
+            <span class="badge bg-light text-primary border py-2 px-3 fw-semibold">
+                <i class="bi bi-shield-lock me-1"></i> Authenticated Session
+            </span>
+        </div>
+    </div>
 
-    <div class="main-container">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <div class="page-title">
-                        <h1 class="mb-1">Profile Settings</h1>
-                        <p class="mb-0 text-muted">Update your personal information and account settings</p>
-                    </div>
+    <div class="row g-4">
+        <!-- Profile Identity Card -->
+        <div class="col-lg-5">
+            <div class="content-card h-100 mb-4 mb-lg-0">
+                <div class="card-header">
+                    <h2>Administrator Identity</h2>
                 </div>
-                <div class="col-md-4">
-                    <div class="page-actions d-flex justify-content-md-end">
-                        <button class="btn btn-success" id="saveProfile">
-                            <i class="fas fa-save me-2"></i>Save Changes
-                        </button>
+                <div class="card-body text-center p-4">
+                    <div class="profile-avatar mb-3">
+                        <div class="user-avatar mx-auto" id="initials" style="width: 72px; height: 72px; font-size: 1.75rem;">
+                            {{ current_user.first_name[0] | upper if current_user and current_user.first_name else 'A' }}
+                        </div>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-1" id="fullName">
+                        {{ current_user.first_name }} {{ current_user.last_name }}
+                    </h4>
+                    <p class="text-muted small mb-3">Notre Dame of Marbel University • Computer Center</p>
+                    <div class="d-inline-flex gap-2 mb-4">
+                        <span class="role-badge admin">
+                            <i class="bi bi-shield-fill"></i> {{ 'GIA' if current_user.role == 'gia' else current_user.role | capitalize }}
+                        </span>
+                        <span class="status-badge active">Active Status</span>
+                    </div>
+
+                    <div class="text-start border-top pt-3">
+                        <input type="hidden" id="userId" value="{{ user.user_id }}">
+                        
+                        <div class="mb-3">
+                            <label for="username" class="form-label small">Sign-In Username</label>
+                            <input type="text" class="form-control bg-light" id="username" readonly>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-5">
+                                <label for="firstName" class="form-label small">First Name</label>
+                                <input type="text" class="form-control bg-light" id="firstName" readonly>
+                            </div>
+                            <div class="col-2">
+                                <label for="middleName" class="form-label small">M.I.</label>
+                                <input type="text" class="form-control bg-light text-center" id="middleName" readonly>
+                            </div>
+                            <div class="col-5">
+                                <label for="lastName" class="form-label small">Last Name</label>
+                                <input type="text" class="form-control bg-light" id="lastName" readonly>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Profile Information -->
-        <div class="content-card mb-4">
-            <div class="card-header">
-                <h2 class="mb-0">Personal Information</h2>
-            </div>
-            <div class="card-body">
-                <form id="profileForm">
-                    <div class="row g-4">
-                        <!-- Profile Picture Section -->
-                        <div class="col-12">
-                            <div class="d-flex align-items-center mb-4">
-                                <div class="profile-avatar me-4">
-                                    <div class="user-avatar" id="initials" style="width: 80px; height: 80px; font-size: 32px;"></div>
+        <!-- Security & Password Change -->
+        <div class="col-lg-7">
+            <div class="content-card">
+                <div class="card-header">
+                    <h2>Security & Password Update</h2>
+                    <span class="badge bg-light text-secondary border">End-to-End Encrypted</span>
+                </div>
+                <div class="card-body">
+                    <form id="passwordForm">
+                        <div class="mb-4">
+                            <label for="currentPassword" class="form-label">Current Master Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="currentPassword" placeholder="Enter current password" required>
+                                <button class="btn btn-outline-secondary" type="button" id="toggleCurrentPassword" aria-label="Toggle password visibility">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">Required to confirm authorization before updating credentials.</small>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="newPassword" class="form-label">New Password <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="newPassword" placeholder="Min. 8 characters" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword" aria-label="Toggle password visibility">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                 </div>
-                                <div>
-                                    <h5 class="mb-1" id="fullName"></h5>
-                                    <p class="text-muted mb-2">Computer Center</p>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" hidden>
-                                        <i class="fas fa-camera me-1"></i>Change Photo
+                            </div>
+                            <div class="col-md-6">
+                                <label for="confirmPassword" class="form-label">Confirm New Password <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="confirmPassword" placeholder="Re-type new password" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" aria-label="Toggle password visibility">
+                                        <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Basic Information -->
-                        <div class="col-12">
-                            <h6 class="fw-bold mb-3 text-primary">
-                                <i class="fas fa-user me-2"></i>Basic Information
-                            </h6>
-                        </div>
-
-                        <input type="hidden" id="userId" value="{{ user.user_id }}">
-
-                        <div class="col-md-6" hidden>
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" readonly>
-                            <small class="text-muted">Used for login and system identification</small>
-                        </div>
-                        <div class="col-md-6" hidden>
-                            <label for="employeeId" class="form-label">GIA ID</label>
-                            <input type="text" class="form-control" id="employeeId" value="EMP-001" readonly>
-                            <small class="text-muted">Cannot be changed</small>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label for="firstName" class="form-label">First Name</label>
-                            <input type="text" class="form-control" id="firstName"required>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="lastName" class="form-label">Last Name</label>
-                            <input type="text" class="form-control" id="lastName"required>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="middleName" class="form-label">Middle Initial</label>
-                            <input type="text" class="form-control" id="middleName" maxlength="1">
-                        </div>
-
-                        <div class="col-md-6" hidden>
-                            <label for="email" class="form-label">Email Address</label>
-                            <input type="email" class="form-control" id="email" disabled>
-                        </div>
-                        <div class="col-md-6" hidden>
-                            <label for="phone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phone" disabled placeholder="Optional">
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Password Change Section -->
-        <div class="content-card mb-4">
-            <div class="card-header">
-                <h2 class="mb-0">Change Password</h2>
-            </div>
-            <div class="card-body">
-                <form id="passwordForm">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <h6 class="fw-bold mb-3 text-primary">
-                                <i class="fas fa-lock me-2"></i>Security Settings
-                            </h6>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="currentPassword" class="form-label">Current Password</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="currentPassword" required>
-                                <button class="btn btn-outline-secondary" type="button" id="toggleCurrentPassword">
-                                    <i class="fas fa-eye"></i>
-                                </button>
+                        <!-- Strength Meter -->
+                        <div class="mb-4" id="passwordStrength" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">Password Strength Complexity:</small>
+                                <small class="fw-bold" id="strengthText">Weak</small>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <!-- Empty column for spacing -->
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="newPassword" class="form-label">New Password</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="newPassword" required>
-                                <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                            <small class="text-muted">Must be at least 8 characters long</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="confirmPassword" required>
-                                <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                            <small class="text-muted">Must match the new password</small>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="password-strength" id="passwordStrength" style="display: none;">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <small class="text-muted">Password Strength:</small>
-                                    <small class="fw-medium" id="strengthText">Weak</small>
-                                </div>
-                                <div class="progress" style="height: 4px;">
-                                    <div class="progress-bar" id="strengthBar" style="width: 0%"></div>
-                                </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar" id="strengthBar" style="width: 0%; transition: width 0.3s ease;"></div>
                             </div>
                         </div>
 
-                        <div class="col-12">
-                            <button type="button" class="btn btn-warning" id="changePassword">
-                                <i class="fas fa-key me-2"></i>Change Password
+                        <div class="p-3 bg-light rounded border mb-4">
+                            <h6 class="fw-bold text-dark small mb-2"><i class="bi bi-shield-check text-primary me-1"></i> Password Best Practices:</h6>
+                            <ul class="text-muted small mb-0 ps-3">
+                                <li>At least 8 characters in total length.</li>
+                                <li>Mix of upper and lowercase letters, numbers, and symbols.</li>
+                                <li>Do not reuse default or common passwords.</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-primary" id="changePassword">
+                                <i class="bi bi-key-fill"></i> Update Password
                             </button>
                         </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Account Information -->
-        <div class="content-card" hidden>
-            <div class="card-header">
-                <h2 class="mb-0">Account Information</h2>
-            </div>
-            <div class="card-body">
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <div class="summary-item">
-                            <div class="summary-label">Department</div>
-                            <div class="summary-value">Engineering</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="summary-item">
-                            <div class="summary-label">Position</div>
-                            <div class="summary-value">Manager</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="summary-item">
-                            <div class="summary-label">Role</div>
-                            <div class="summary-value">
-                                <span class="status-badge active">Admin</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="summary-item">
-                            <div class="summary-label">Account Status</div>
-                            <div class="summary-value">
-                                <span class="status-badge active">Active</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="summary-item">
-                            <div class="summary-label">Member Since</div>
-                            <div class="summary-value">January 15, 2023</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="summary-item">
-                            <div class="summary-label">Last Login</div>
-                            <div class="summary-value">Today, 8:45 AM</div>
-                        </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Success Alert (Hidden by default) -->
-    <div class="alert alert-success alert-dismissible fade position-fixed" id="successAlert" style="top: 20px; right: 20px; z-index: 9999; display: none;">
-        <i class="fas fa-check-circle me-2"></i>
-        Profile updated successfully!
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+<!-- Alert for legacy profile JS compatibility -->
+<div class="alert alert-success alert-dismissible fade position-fixed" id="successAlert" style="top: 20px; right: 20px; z-index: 9999; display: none;"></div>
+{% endblock %}
 
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
 {% endblock %}

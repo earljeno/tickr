@@ -4,40 +4,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Denied - Tickr</title>
+    <title>Office Network Restricted • Tickr</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='media/ndmu_logo.png') }}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Typography: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/access_denied.css') }}">
 </head>
 
 <body>
-    <div class="access-container d-flex align-items-center justify-content-center">
-        <div class="access-card text-center">
-            <div class="access-icon">
-                <i class="fas fa-lock"></i>
+    <div class="access-container">
+        <div class="access-card">
+            <div class="access-icon-circle">
+                <i class="bi bi-shield-x"></i>
             </div>
-            <h2 class="fw-bold mt-3">Access Denied</h2>
-            <p class="text-muted mb-4">
-                This dashboard is restricted to office network access only.
-                Please connect to the official <strong>Office Router</strong> to continue.
+            <h1>Network Access Restricted</h1>
+            <p class="lead-text">
+                The employee attendance kiosk is restricted to authorized on-site office networks only. 
+                Please connect to the designated <strong>Computer Center Router / Wi-Fi</strong> to clock in or manage your attendance.
             </p>
 
-            <div class="network-info text-start mb-3">
-                <h6 class="fw-semibold text-dark mb-1">Why am I seeing this?</h6>
-                <ul class="text-muted small mb-3">
-                    <li>You are connected to an unregistered or public network.</li>
-                    <li>Only office computers connected to the official router are allowed.</li>
-                    <li>Laboratory or guest Wi-Fi networks are restricted.</li>
+            <div class="network-details-box">
+                <h6>Why is this required?</h6>
+                <ul>
+                    <li>To ensure biometric and time-logging integrity, time recording is limited to facility premises.</li>
+                    <li>Guest Wi-Fi, mobile cellular data, and remote connections are disallowed by policy.</li>
+                    <li>If you are physically in the computer center, verify your workstation's network adapter or Wi-Fi SSID.</li>
                 </ul>
             </div>
 
-            <a class="btn btn-primary px-4" href="/dashboard">
-                <i class="fas fa-sync-alt me-2"></i>Try Again
-            </a>
+            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                <a class="btn btn-primary px-4 py-2" href="/dashboard">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Re-check Network
+                </a>
+                <a class="btn btn-outline-secondary px-4 py-2" href="{{ url_for('auth.logout') }}">
+                    <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                </a>
+            </div>
 
-            <div class="mt-4">
-                <small class="text-muted">Need help? Contact your system administrator.</small>
+            <div class="mt-4 pt-2 border-top">
+                <small class="text-muted">Need technical assistance? Contact your Computer Center Administrator.</small>
             </div>
         </div>
     </div>

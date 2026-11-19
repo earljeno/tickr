@@ -1,61 +1,141 @@
 {% extends "admin/base.html" %}
 
 {% block title %}Export DTR - Tickr{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
 
 {% set breadcrumb1 = "Reports" %}
 {% set breadcrumb2 = "Export to PDF" %}
 
 {% block content %}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
-
-    <div class="main-container">
-
-        <!-- Header -->
-        <div class="page-header">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <div class="page-title">
-                        <h1 class="mb-1">Export DTR Reports</h1>
-                        <p class="mb-0 text-muted">Generate and download attendance summaries.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="page-actions d-flex justify-content-md-end">
-                    </div>
-                </div>
-            </div>
+<div class="main-container">
+    <!-- Page Header -->
+    <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <div class="page-title">
+            <h1 class="mb-1">Export Daily Time Record (DTR)</h1>
+            <p class="text-muted">Generate official monthly civil service attendance cards for active assistants</p>
         </div>
-
-        <!-- Content Card -->
-        <div class="content-card text-center py-5">
-            <div class="card-body">
-                <div class="mb-4">
-                    <label for="monthPicker" class="form-label fw-semibold">Select Month</label>
-                    <div class="mx-auto" style="max-width: 220px;">
-                        <input type="month" class="form-control text-center" id="monthPicker" value="{{ month }}" />
-                    </div>
-                </div>
-
-                <button class="btn btn-primary btn px-5" id="generateBtn">
-                    <i class="fas fa-download me-2"></i>Generate & Download
-                </button>
-            </div>
+        <div class="page-actions">
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
         </div>
-
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <!-- Export Workspace Grid -->
+    <div class="row g-4 justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="content-card">
+                <div class="card-header">
+                    <h2>Select Billing & Record Month</h2>
+                    <span class="badge bg-light text-primary border">Civil Service Form 48</span>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div class="stat-icon total-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.5rem;">
+                        <i class="bi bi-file-earmark-pdf-fill"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Monthly Attendance Summary</h5>
+                    <p class="text-muted small mb-4">
+                        Choose the month to compile. The report computes regular and split shifts, total monthly decimal hours, and marks Philippine national holidays and Sundays automatically.
+                    </p>
+
+                    <div class="card bg-light border p-3 mb-4 mx-auto" style="max-width: 340px;">
+                        <label for="monthPicker" class="form-label text-start mb-2">Target Month & Year</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-calendar3"></i></span>
+                            <input type="month" class="form-control border-start-0 text-center fw-semibold" id="monthPicker" value="{{ month }}" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCurrentMonth">
+                            Current Month
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnPrevMonth">
+                            Previous Month
+                        </button>
+                    </div>
+
+                    <div class="d-grid gap-2 col-sm-10 mx-auto">
+                        <button class="btn btn-primary py-2 px-4 shadow-sm" id="generateBtn">
+                            <i class="bi bi-printer-fill me-2"></i>Generate & Print DTR Cards
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 col-md-8">
+            <div class="content-card h-100">
+                <div class="card-header">
+                    <h2>Report Specifications</h2>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+                        <li class="d-flex gap-3">
+                            <i class="bi bi-layers text-primary fs-5 mt-1"></i>
+                            <div>
+                                <strong class="d-block text-dark">Dual-Card Sheet Layout</strong>
+                                <small class="text-muted">Formatted to print 2 employee DTR cards side-by-side per standard legal/letter paper sheet with cut guidelines.</small>
+                            </div>
+                        </li>
+                        <li class="d-flex gap-3">
+                            <i class="bi bi-calendar-check text-success fs-5 mt-1"></i>
+                            <div>
+                                <strong class="d-block text-dark">Automatic Holiday Detection</strong>
+                                <small class="text-muted">Integrates Philippine regular and special non-working holidays with automatic Sunday exclusion.</small>
+                            </div>
+                        </li>
+                        <li class="d-flex gap-3">
+                            <i class="bi bi-award text-warning fs-5 mt-1"></i>
+                            <div>
+                                <strong class="d-block text-dark">Official Certification Signature</strong>
+                                <small class="text-muted">Includes verified student assistant certification signature line and Unit Head sign-off designation.</small>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
         const monthPicker = document.getElementById('monthPicker');
         const generateBtn = document.getElementById('generateBtn');
+        const btnCurrentMonth = document.getElementById('btnCurrentMonth');
+        const btnPrevMonth = document.getElementById('btnPrevMonth');
 
-        generateBtn.addEventListener('click', async () => {
-            const month = monthPicker.value;
+        if (btnCurrentMonth) {
+            btnCurrentMonth.addEventListener('click', () => {
+                const now = new Date();
+                const yr = now.getFullYear();
+                const mo = String(now.getMonth() + 1).padStart(2, '0');
+                monthPicker.value = `${yr}-${mo}`;
+            });
+        }
 
-            window.open(`/admin/export?month=${month}`, +'_blank');
-        });
-    </script>
+        if (btnPrevMonth) {
+            btnPrevMonth.addEventListener('click', () => {
+                const now = new Date();
+                now.setMonth(now.getMonth() - 1);
+                const yr = now.getFullYear();
+                const mo = String(now.getMonth() + 1).padStart(2, '0');
+                monthPicker.value = `${yr}-${mo}`;
+            });
+        }
+
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => {
+                const month = monthPicker.value;
+                if (!month) {
+                    showAlert('danger', 'Please select a valid month.');
+                    return;
+                }
+                window.open(`/admin/export?month=${encodeURIComponent(month)}`, '_blank');
+            });
+        }
+    });
+</script>
 {% endblock %}

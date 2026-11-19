@@ -2,147 +2,549 @@
 <html lang="en">
 
 <head>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='media/ndmu_logo.png') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DTR Report {{ datetime(year, month, 1).strftime('%m') }}-{{ year }} • Tickr</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <!-- Base DTR Print Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dtr_report.css', _external=True) }}">
-    <title>DTR Report {{ datetime(year, month, 1).strftime('%m') }}-{{ year }}</title>
+
+    <style>
+        /* PDF Reader Canvas & Top Toolbar */
+        @media screen {
+            html, body {
+                margin: 0;
+                padding: 0;
+                background-color: #525659;
+                min-height: 100vh;
+                box-sizing: border-box;
+            }
+
+            body {
+                display: block !important;
+                padding-top: 68px !important;
+                padding-bottom: 48px !important;
+                overflow-y: auto !important;
+            }
+
+            /* Fixed Top Bar Only */
+            .pdf-toolbar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 52px;
+                background-color: #1e293b;
+                border-bottom: 1px solid #334155;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 1.25rem;
+                z-index: 9999;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+                color: #f8fafc;
+                user-select: none;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+
+            .pdf-toolbar-group {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .pdf-divider {
+                width: 1px;
+                height: 22px;
+                background-color: #475569;
+                margin: 0 0.25rem;
+            }
+
+            .pdf-doc-title {
+                font-weight: 700;
+                font-size: 0.875rem;
+                color: #f8fafc;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+
+            .pdf-badge {
+                font-size: 0.725rem;
+                font-weight: 600;
+                padding: 0.15rem 0.5rem;
+                border-radius: 4px;
+                background-color: rgba(59, 130, 246, 0.2);
+                color: #93c5fd;
+                border: 1px solid rgba(59, 130, 246, 0.35);
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+
+            .pdf-doc-meta {
+                font-size: 0.775rem;
+                color: #94a3b8;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+
+            .pdf-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.45rem;
+                padding: 0.4rem 0.85rem;
+                font-size: 0.8125rem;
+                font-weight: 600;
+                border-radius: 6px;
+                text-decoration: none;
+                cursor: pointer;
+                transition: all 0.15s ease-in-out;
+                border: 1px solid transparent;
+                line-height: 1.2;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+
+            .pdf-btn-primary {
+                background-color: #2563eb;
+                color: #ffffff;
+                border-color: #3b82f6;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+            }
+
+            .pdf-btn-primary:hover {
+                background-color: #1d4ed8;
+                border-color: #2563eb;
+            }
+
+            .pdf-btn-secondary {
+                background-color: rgba(255, 255, 255, 0.08);
+                color: #e2e8f0;
+                border-color: #475569;
+            }
+
+            .pdf-btn-secondary:hover {
+                background-color: rgba(255, 255, 255, 0.16);
+                color: #ffffff;
+                border-color: #64748b;
+            }
+
+            .pdf-btn-icon {
+                width: 32px;
+                height: 32px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(255, 255, 255, 0.08);
+                border: 1px solid #475569;
+                border-radius: 6px;
+                color: #e2e8f0;
+                cursor: pointer;
+                font-size: 0.875rem;
+                transition: all 0.15s ease-in-out;
+            }
+
+            .pdf-btn-icon:hover {
+                background-color: rgba(255, 255, 255, 0.16);
+                color: #ffffff;
+                border-color: #64748b;
+            }
+
+            .pdf-zoom-text {
+                font-size: 0.8125rem;
+                font-family: 'JetBrains Mono', monospace;
+                color: #cbd5e1;
+                min-width: 46px;
+                text-align: center;
+            }
+
+            .pdf-viewport-container {
+                display: flex;
+                justify-content: center;
+                width: 100%;
+                overflow-x: auto;
+                box-sizing: border-box;
+                padding: 1rem 0;
+            }
+
+            .pdf-viewport {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 32px;
+                transform-origin: top center;
+                transition: transform 0.12s ease-out;
+            }
+
+            /* Paper Sheet Layout on Screen (Matches physical 8.5in x 11in print sheet) */
+            .container {
+                width: 8.5in !important;
+                max-width: 8.5in !important;
+                min-height: 11in !important;
+                background: #ffffff !important;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2) !important;
+                border-radius: 2px !important;
+                margin: 0 auto !important;
+                padding: 0.5in 0.25in 0.25in 0.25in !important;
+                box-sizing: border-box !important;
+                position: relative !important;
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+            }
+
+            /* Isolate DTR font and sizing to match exact print appearance */
+            .container,
+            .container * {
+                font-family: "Arial Narrow", "Liberation Sans Narrow", "Nimbus Sans L Condensed", Arial, sans-serif !important;
+                box-sizing: border-box;
+            }
+
+            .container .dtr {
+                width: 48% !important;
+                text-align: center !important;
+                position: relative !important;
+                isolation: isolate !important;
+            }
+
+            .container .dtr .watermark {
+                position: absolute !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) rotate(-45deg) !important;
+                opacity: 0.15 !important;
+                z-index: -1 !important;
+                pointer-events: none !important;
+                width: 80% !important;
+                max-width: 320px !important;
+            }
+
+            .container .dtr table {
+                width: 100% !important;
+                max-width: 98% !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important;
+                margin: 0 auto !important;
+            }
+
+            .container .dtr th,
+            .container .dtr td {
+                font-family: "Arial Narrow", "Liberation Sans Narrow", "Nimbus Sans L Condensed", Arial, sans-serif !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: clip !important;
+                padding: 1.5px 2px !important;
+                line-height: 14px !important;
+                height: 15px !important;
+                font-size: 7.5pt !important;
+                border: 0.001rem solid rgba(0, 0, 0, 0.6) !important;
+                text-align: center !important;
+            }
+
+            .container .dtr table tr {
+                height: 15px !important;
+                line-height: 15px !important;
+            }
+
+            .container .dtr .total-hours {
+                text-align: right !important;
+                font-size: 10pt !important;
+                margin-top: 2px !important;
+                margin-right: 12px !important;
+            }
+
+            .container .dtr .footer {
+                text-align: left !important;
+                font-size: 9.5pt !important;
+                margin-top: 8px !important;
+            }
+
+            .container .dtr .signature {
+                display: flex !important;
+                justify-content: space-between !important;
+                margin-top: 18px !important;
+            }
+
+            .container .dtr .unit-head p:first-child {
+                margin-top: 24px !important;
+            }
+
+            .container .dtr .sysgen {
+                margin-top: 16px !important;
+            }
+
+            .page-break {
+                height: 0;
+                margin: 0;
+            }
+        }
+
+        /* Clean Print Output (Toolbar Hidden, Full Paper Reset) */
+        @media print {
+            .pdf-toolbar {
+                display: none !important;
+            }
+
+            body {
+                background: transparent !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                min-height: auto !important;
+                display: block !important;
+            }
+
+            .pdf-viewport-container,
+            .pdf-viewport {
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                transform: none !important;
+                gap: 0 !important;
+            }
+
+            .container {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                background: transparent !important;
+                width: 100% !important;
+                max-width: none !important;
+                min-height: auto !important;
+                margin: auto !important;
+                padding: 5px !important;
+            }
+
+            .page-break {
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+    </style>
 </head>
 
 <body>
-
-    {% for pair in user_pairs %}
-    <div class="container">
-        {% for user in pair %}
-        <div class="dtr">
-            <img src="{{ url_for('static', filename='media/watermark.png') }}" class="watermark" alt="watermark">
-
-            <div>GIA/WS PROGRAM</div>
-            <div>NOTRE DAME OF MARBEL UNIVERSITY</div>
-            <div class="address">City of Koronadal, South Cotabato</div>
-            <div class="dtr-title">DAILY TIME RECORD</div>
-            <div class="name">
-                {{ user.last_name }}, {{ user.first_name }} {% if user.middle_name %} {{ user.middle_name }}. {% endif
-                %}
+    <!-- Top Bar Only -->
+    <header class="pdf-toolbar no-print">
+        <div class="pdf-toolbar-group">
+            <a href="{{ url_for('admin.export_dtr') }}" class="pdf-btn pdf-btn-secondary" title="Return to Export Settings">
+                <i class="bi bi-arrow-left"></i>
+                <span>Back</span>
+            </a>
+            <div class="pdf-divider"></div>
+            <div class="pdf-doc-title">
+                <strong>Form 48 DTR</strong>
+                <span class="pdf-badge">{{ datetime(year, month, 1).strftime('%B %Y') }}</span>
             </div>
-            <div class="subtitle">Name</div>
-            <div class="month-label">
-                For the month of {{ datetime(year, month, 1).strftime('%B') }}, {{ year }}
-            </div>
-
-            {% set uid = user.user_id|string %} {# move uid here (one-time per user) #}
-            <table>
-                <tr>
-                    <th rowspan="2">DATE</th>
-                    <th colspan="4">TIME</th>
-                    <th colspan="2">TOTAL</th>
-                </tr>
-                <tr>
-                    <th>IN</th>
-                    <th>OUT</th>
-                    <th>IN</th>
-                    <th>OUT</th>
-                    <th>HH</th>
-                    <th>MM</th>
-                </tr>
-
-                {% for day in range(1, total_days+1) %}
-                {% set date_key = "%04d-%02d-%02d" % (year, month, day) %}
-
-                {# 1. Check if the day is a Holiday or Sunday #}
-                {% set day_status = day_status_dict.get(date_key) %}
-
-                {# lookup the specific day's shifts for this user #}
-                {% set shifts = attendance_dict.get(uid, {}).get(date_key, {
-                "shift1": {"in": None, "out": None},
-                "shift2": {"in": None, "out": None}
-                }) %}
-                {% set shift1 = shifts.get("shift1", {"in": None, "out": None}) %}
-                {% set shift2 = shifts.get("shift2", {"in": None, "out": None}) %}
-
-                {# 2. Check if the user has ANY active time records for this day #}
-                {% set has_logs = shift1["in"] or shift1["out"] or shift2["in"] or shift2["out"] %}
-
-                {% set daily_hours = 0 %}
-                {% set daily_minutes = 0 %}
-
-                {# Calculate shift 1 time #}
-                {% if shift1["in"] and shift1["out"] %}
-                {% set shift1_seconds = (shift1["out"] - shift1["in"]).total_seconds() %}
-                {% set daily_hours = (shift1_seconds // 3600) | int %}
-                {% set daily_minutes = (shift1_seconds % 3600 // 60) | int %}
-                {% endif %}
-
-                {# Calculate shift 2 time #}
-                {% if shift2["in"] and shift2["out"] %}
-                {% set shift2_seconds = (shift2["out"] - shift2["in"]).total_seconds() %}
-                {% set daily_hours = (daily_hours + (shift2_seconds // 3600)) | int %}
-                {% set daily_minutes = (daily_minutes + (shift2_seconds % 3600 // 60)) | int %}
-                {% endif %}
-
-                {# Convert extra minutes into hours #}
-                {% set extra_hours = (daily_minutes // 60) | int %}
-                {% set daily_hours = (daily_hours + extra_hours) | int %}
-                {% set daily_minutes = (daily_minutes % 60) | int %}
-
-                <tr>
-                    <td>{{ day }}</td>
-                    
-                    {# 3. Conditional Layout: Merge cells if it's a holiday/weekend and they didn't clock in/out #}
-                    {% if day_status and not has_logs %}
-                        <td colspan="4" style="text-align: center; color: #666; text-transform: uppercase;">
-                            {{ day_status }}
-                        </td>
-                    {% else %}
-                        <td>{{ shift1["in"].strftime('%I:%M %p') if shift1["in"] else '' }}</td>
-                        <td>{{ shift1["out"].strftime('%I:%M %p') if shift1["out"] else '' }}</td>
-                        <td>{{ shift2["in"].strftime('%I:%M %p') if shift2["in"] else '' }}</td>
-                        <td>{{ shift2["out"].strftime('%I:%M %p') if shift2["out"] else '' }}</td>
-                    {% endif %}
-
-                    {# Hours summary remains consistent at the end of the row #}
-                    <td>{{ daily_hours if daily_hours > 0 else '' }}</td>
-                    <td>{{ daily_minutes if daily_minutes > 0 else '' }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-
-            <div class="total-hours">
-                <p><strong>Total:</strong> {{ total_hours_dict.get(uid, '0:00') }}</p>
-            </div>
-
-            <div class="footer">
-                <p>I certify that the above is true and correct.</p>
-                <div class="signature">
-                    <div>
-                        <p>__________________</p>
-                        <p>Signature</p>
-                    </div>
-                    <div class="assign">
-                        <p class="underline">Computer Center - Main</p>
-                        <p>Work Assignment</p>
-                    </div>
-                </div>
-                <div class="unit-head">
-                    <p class="underline">{{ unit_head }}</p>
-                    <p>Unit Head</p>
-                </div>
-                <div class="sysgen mt-4">
-                    System Generated: {{ now.strftime('%m-%d-%Y %H:%M') }}
-                </div>
-            </div>
+            <span class="pdf-doc-meta d-none d-sm-inline">
+                • {{ user_pairs|length }} Sheet{% if user_pairs|length != 1 %}s{% endif %} ({{ user_pairs|length * 2 }} Assistants)
+            </span>
         </div>
-        {% endfor %}
+
+        <div class="pdf-toolbar-group">
+            <button type="button" class="pdf-btn-icon" id="zoomOutBtn" title="Zoom Out">
+                <i class="bi bi-zoom-out"></i>
+            </button>
+            <span id="zoomLevelText" class="pdf-zoom-text">100%</span>
+            <button type="button" class="pdf-btn-icon" id="zoomInBtn" title="Zoom In">
+                <i class="bi bi-zoom-in"></i>
+            </button>
+            <button type="button" class="pdf-btn-icon" id="zoomResetBtn" title="Reset Zoom / Fit Width">
+                <i class="bi bi-arrows-expand"></i>
+            </button>
+        </div>
+
+        <div class="pdf-toolbar-group">
+            <button type="button" class="pdf-btn pdf-btn-primary" onclick="window.print()" id="printBtn">
+                <i class="bi bi-printer-fill"></i>
+                <span>Print / Save as PDF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- PDF Canvas Viewport -->
+    <div class="pdf-viewport-container" id="pdfViewportContainer">
+        <div class="pdf-viewport" id="pdfViewport">
+            {% for pair in user_pairs %}
+            <div class="container">
+                {% for user in pair %}
+                <div class="dtr">
+                    <img src="{{ url_for('static', filename='media/watermark.png') }}" class="watermark" alt="watermark">
+
+                    <div>GIA/WS PROGRAM</div>
+                    <div>NOTRE DAME OF MARBEL UNIVERSITY</div>
+                    <div class="address">City of Koronadal, South Cotabato</div>
+                    <div class="dtr-title">DAILY TIME RECORD</div>
+                    <div class="name">
+                        {{ user.last_name }}, {{ user.first_name }} {% if user.middle_name %} {{ user.middle_name }}. {% endif %}
+                    </div>
+                    <div class="subtitle">Name</div>
+                    <div class="month-label">
+                        For the month of {{ datetime(year, month, 1).strftime('%B') }}, {{ year }}
+                    </div>
+
+                    {% set uid = user.user_id|string %}
+                    <table>
+                        <tr>
+                            <th rowspan="2">DATE</th>
+                            <th colspan="4">TIME</th>
+                            <th colspan="2">TOTAL</th>
+                        </tr>
+                        <tr>
+                            <th>IN</th>
+                            <th>OUT</th>
+                            <th>IN</th>
+                            <th>OUT</th>
+                            <th>HH</th>
+                            <th>MM</th>
+                        </tr>
+
+                        {% for day in range(1, total_days+1) %}
+                        {% set date_key = "%04d-%02d-%02d" % (year, month, day) %}
+
+                        {% set day_status = day_status_dict.get(date_key) %}
+
+                        {% set shifts = attendance_dict.get(uid, {}).get(date_key, {
+                        "shift1": {"in": None, "out": None},
+                        "shift2": {"in": None, "out": None}
+                        }) %}
+                        {% set shift1 = shifts.get("shift1", {"in": None, "out": None}) %}
+                        {% set shift2 = shifts.get("shift2", {"in": None, "out": None}) %}
+
+                        {% set has_logs = shift1["in"] or shift1["out"] or shift2["in"] or shift2["out"] %}
+
+                        {% set daily_hours = 0 %}
+                        {% set daily_minutes = 0 %}
+
+                        {% if shift1["in"] and shift1["out"] %}
+                        {% set shift1_seconds = (shift1["out"] - shift1["in"]).total_seconds() %}
+                        {% set daily_hours = (shift1_seconds // 3600) | int %}
+                        {% set daily_minutes = (shift1_seconds % 3600 // 60) | int %}
+                        {% endif %}
+
+                        {% if shift2["in"] and shift2["out"] %}
+                        {% set shift2_seconds = (shift2["out"] - shift2["in"]).total_seconds() %}
+                        {% set daily_hours = (daily_hours + (shift2_seconds // 3600)) | int %}
+                        {% set daily_minutes = (daily_minutes + (shift2_seconds % 3600 // 60)) | int %}
+                        {% endif %}
+
+                        {% set extra_hours = (daily_minutes // 60) | int %}
+                        {% set daily_hours = (daily_hours + extra_hours) | int %}
+                        {% set daily_minutes = (daily_minutes % 60) | int %}
+
+                        <tr>
+                            <td>{{ day }}</td>
+                            
+                            {% if day_status and not has_logs %}
+                                <td colspan="4" style="text-align: center; color: #666; text-transform: uppercase;">
+                                    {{ day_status }}
+                                </td>
+                            {% else %}
+                                <td>{{ shift1["in"].strftime('%I:%M %p') if shift1["in"] else '' }}</td>
+                                <td>{{ shift1["out"].strftime('%I:%M %p') if shift1["out"] else '' }}</td>
+                                <td>{{ shift2["in"].strftime('%I:%M %p') if shift2["in"] else '' }}</td>
+                                <td>{{ shift2["out"].strftime('%I:%M %p') if shift2["out"] else '' }}</td>
+                            {% endif %}
+
+                            <td>{{ daily_hours if daily_hours > 0 else '' }}</td>
+                            <td>{{ daily_minutes if daily_minutes > 0 else '' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+
+                    <div class="total-hours">
+                        <p><strong>Total:</strong> {{ total_hours_dict.get(uid, '0:00') }}</p>
+                    </div>
+
+                    <div class="footer">
+                        <p>I certify that the above is true and correct.</p>
+                        <div class="signature">
+                            <div>
+                                <p>__________________</p>
+                                <p>Signature</p>
+                            </div>
+                            <div class="assign">
+                                <p class="underline">Computer Center - Main</p>
+                                <p>Work Assignment</p>
+                            </div>
+                        </div>
+                        <div class="unit-head">
+                            <p class="underline">{{ unit_head }}</p>
+                            <p>Unit Head</p>
+                        </div>
+                        <div class="sysgen mt-4">
+                            System Generated: {{ now.strftime('%m-%d-%Y %H:%M') }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if not loop.last %}
+            <div class="page-break" style="page-break-after: always;"></div>
+            {% endif %}
+            {% endfor %}
+        </div>
     </div>
-    <div style="page-break-after: always;"></div>
-    {% endfor %}
 
+    <!-- Zoom & Keyboard Controller -->
     <script>
-        window.onload = function () {
-            window.print();
-        };
-    </script>
+        (function () {
+            let currentZoom = 1.0;
+            const minZoom = 0.5;
+            const maxZoom = 2.0;
+            const stepZoom = 0.15;
+            const viewport = document.getElementById('pdfViewport');
+            const zoomText = document.getElementById('zoomLevelText');
 
+            function setZoom(val) {
+                currentZoom = Math.min(maxZoom, Math.max(minZoom, Math.round(val * 100) / 100));
+                if ('zoom' in viewport.style) {
+                    viewport.style.zoom = currentZoom;
+                } else {
+                    viewport.style.transform = `scale(${currentZoom})`;
+                    viewport.style.transformOrigin = 'top center';
+                }
+                zoomText.textContent = `${Math.round(currentZoom * 100)}%`;
+            }
+
+            document.getElementById('zoomInBtn').addEventListener('click', function () {
+                setZoom(currentZoom + stepZoom);
+            });
+
+            document.getElementById('zoomOutBtn').addEventListener('click', function () {
+                setZoom(currentZoom - stepZoom);
+            });
+
+            document.getElementById('zoomResetBtn').addEventListener('click', function () {
+                if (Math.abs(currentZoom - 1.0) < 0.05) {
+                    // If already ~100%, fit width
+                    const targetWidth = 8.5 * 96;
+                    const availableWidth = window.innerWidth - 60;
+                    setZoom(availableWidth / targetWidth);
+                } else {
+                    setZoom(1.0);
+                }
+            });
+
+            // Keyboard navigation shortcuts
+            document.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
+                    e.preventDefault();
+                    setZoom(currentZoom + stepZoom);
+                } else if ((e.ctrlKey || e.metaKey) && (e.key === '-' || e.key === '_')) {
+                    e.preventDefault();
+                    setZoom(currentZoom - stepZoom);
+                } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+                    e.preventDefault();
+                    setZoom(1.0);
+                } else if (e.key === 'Escape') {
+                    window.location.href = "{{ url_for('admin.export_dtr') }}";
+                }
+            });
+        })();
+    </script>
 </body>
 
 </html>

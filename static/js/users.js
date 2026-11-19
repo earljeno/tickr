@@ -147,7 +147,20 @@ function renderUsers(users) {
     users.forEach(user => {
         const tr = document.createElement('tr');
         const initials = `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase();
-        const roleLabel = user.role === 'gia' ? 'GIA' : user.role || '-';
+        const roleLower = (user.role || '').toLowerCase();
+        const roleLabel = roleLower === 'gia' ? 'GIA' : (user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase() : '-');
+        const statusLabel = user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase() : '-';
+
+        const safeInitials = typeof escapeHtml === 'function' ? escapeHtml(initials) : initials;
+        const safeFirstName = typeof escapeHtml === 'function' ? escapeHtml(user.first_name || '-') : (user.first_name || '-');
+        const safeLastName = typeof escapeHtml === 'function' ? escapeHtml(user.last_name || '') : (user.last_name || '');
+        const safeUserId = typeof escapeHtml === 'function' ? escapeHtml(user.user_id || '-') : (user.user_id || '-');
+        const safePhone = typeof escapeHtml === 'function' ? escapeHtml(formatPhone(user.phone_number)) : formatPhone(user.phone_number);
+        const safeLab = typeof escapeHtml === 'function' ? escapeHtml(formatLaboratory(user.laboratory)) : formatLaboratory(user.laboratory);
+        const safeRole = typeof escapeHtml === 'function' ? escapeHtml(roleLabel) : roleLabel;
+        const safeRoleClass = (user.role || 'unknown').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        const safeStatus = typeof escapeHtml === 'function' ? escapeHtml(statusLabel) : statusLabel;
+        const safeStatusClass = (user.status || 'unknown').toLowerCase().replace(/[^a-z0-9_-]/g, '');
 
         tr.innerHTML = `
             <td class="ps-4">
@@ -155,30 +168,34 @@ function renderUsers(users) {
                     <div class="user-avatar me-3">
                         <div class="default-avatar rounded-circle d-flex align-items-center justify-content-center"
                             style="width: 40px; height: 40px">
-                            <span class="initials">${initials}</span>
+                            <span class="initials">${safeInitials}</span>
                         </div>
                     </div>
                     <div>
-                        <div class="user-name">${user.first_name || '-'} ${user.last_name || ''}</div>
-                        <div class="user-email">${user.user_id || '-'}</div>
+                        <div class="user-name">${safeFirstName} ${safeLastName}</div>
+                        <div class="user-email">${safeUserId}</div>
                     </div>
                 </div>
             </td>
-            <td class="text-center">${formatPhone(user.phone_number)}</td>
-            <td class="text-center">${formatLaboratory(user.laboratory)}</td>
+            <td class="text-center">${safePhone}</td>
+            <td class="text-center">${safeLab}</td>
             <td class="text-center">
-                <span class="role-badge ${user.role ? user.role.toLowerCase() : 'unknown'}">${roleLabel}</span>
+                <span class="role-badge ${safeRoleClass}">${safeRole}</span>
             </td>
             <td class="text-center">
-                <span class="status-badge ${user.status ? user.status.toLowerCase() : 'unknown'}">${user.status || '-'}</span>
+                <span class="status-badge ${safeStatusClass}">${safeStatus}</span>
             </td>
             <td class="text-center">
                 <div class="d-inline-flex gap-2 justify-content-center">
                     <div class="action-buttons">
-                        <button class="btn btn-sm btn-outline-primary" data-user-id="${user.user_id}" title="Edit">
+                        ${user.role === 'gia' ? `
+                        <a href="/admin/gia-logs?user_id=${encodeURIComponent(safeUserId)}" class="btn btn-sm btn-outline-info" title="View Logs & Analytics">
+                            <i class="bi bi-bar-chart-line"></i>
+                        </a>` : ''}
+                        <button class="btn btn-sm btn-outline-primary" data-user-id="${safeUserId}" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-danger" data-user-id="${user.user_id}" title="Delete" hidden>
+                        <button class="btn btn-sm btn-outline-danger" data-user-id="${safeUserId}" title="Delete" hidden>
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -222,7 +239,7 @@ function applyFilters() {
 
 function clearFilters() {
     document.getElementById('userSearch').value = '';
-    document.getElementById('statusFilter').value = '';
+    document.getElementById('statusFilter').value = 'active';
     document.getElementById('roleFilter').value = '';
     document.getElementById('pageSizeSelect').value = '10';
     currentPage = 1;

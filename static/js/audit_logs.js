@@ -56,27 +56,36 @@ function loadLogs(page = 1) {
             } else {
                 data.logs.forEach(log => {
                     const tr = document.createElement('tr');
+                    const safeDate = typeof escapeHtml === 'function' ? escapeHtml(log.date) : log.date;
+                    const safeTime = typeof escapeHtml === 'function' ? escapeHtml(log.time) : log.time;
+                    const safeName = typeof escapeHtml === 'function' ? escapeHtml(log.full_name) : log.full_name;
+                    const safeRole = typeof escapeHtml === 'function' ? escapeHtml(log.role) : log.role;
+                    const safeAction = typeof escapeHtml === 'function' ? escapeHtml(log.action) : log.action;
+                    const safeDetails = typeof escapeHtml === 'function' ? escapeHtml(log.details || '') : (log.details || '');
+                    const safeIp = typeof escapeHtml === 'function' ? escapeHtml(log.ip || '') : (log.ip || '');
+                    const actionClass = (log.action || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+
                     tr.innerHTML = `
                         <td>
                             <div class="timestamp">
-                                <div class="fw-medium">${log.date}</div>
-                                <small class="text-muted">${log.time}</small>
+                                <div class="fw-medium">${safeDate}</div>
+                                <small class="text-muted">${safeTime}</small>
                             </div>
                         </td>
                         <td>
                             <div class="user-info">
-                                <div class="fw-medium">${log.full_name}</div>
-                                <small class="text-muted">${log.role}</small>
+                                <div class="fw-medium">${safeName}</div>
+                                <small class="text-muted">${safeRole}</small>
                             </div>
                         </td>
                         <td>
-                            <span class="action-badge ${log.action.toLowerCase()}">${log.action}</span>
+                            <span class="action-badge ${actionClass}">${safeAction}</span>
                         </td>
                         <td>
-                            <div class="details-text">${log.details || ''}</div>
+                            <div class="details-text">${safeDetails}</div>
                         </td>
                         <td>
-                            <small class="text-muted">${log.ip || ''}</small>
+                            <small class="text-muted">${safeIp}</small>
                         </td>
                     `;
                     tbody.appendChild(tr);

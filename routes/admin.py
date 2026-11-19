@@ -1,94 +1,38 @@
-from collections import defaultdict
-from datetime import date, datetime, time, timedelta
-from zoneinfo import ZoneInfo
+from datetime import datetime, time, timedelta
 
+import holidays
 from flask import (
     Blueprint,
     flash,
     redirect,
     render_template,
     request,
-    send_file,
-    session,
     url_for,
 )
-from flask_apscheduler import APScheduler
-from flask_login import current_user, login_required, logout_user
-import holidays
+from flask_login import current_user, login_required
 from sqlalchemy import func
-from sqlalchemy.exc import IntegrityError
-from werkzeug.security import check_password_hash, generate_password_hash
 
 from models.models import Attendance, GlobalSettings, Logs, Schedule, User, db
+from utils.decorators import admin_required
+from utils.timezone import get_now, get_time_ago
 
-# Create a Blueprint for admin routes
 admin_bp = Blueprint("admin", __name__)
 
 
-class Config:
-    SCHEDULER_API_ENABLED = True
-
-
-scheduler = APScheduler()
-
-MANILA_TZ = ZoneInfo("Asia/Manila")
-
-
-# Helper function to get fresh Manila time dynamically on every call
-def get_now():
-    return datetime.now(MANILA_TZ)
-
-
-def get_time_ago(log_time):
-    """Converts a datetime object into a relative 'X minutes ago' string safely handling naive & aware dates."""
-    if log_time is None:
-        return "Unknown"
-
-    now = get_now()
-
-    # Handle timezone mismatch if log_time from DB is naive
-    if log_time.tzinfo is None:
-        log_time = log_time.replace(tzinfo=MANILA_TZ)
-
-    diff = now - log_time
-    seconds = diff.total_seconds()
-
-    if seconds < 60:
-        return "Just now"
-    elif seconds < 3600:
-        mins = int(seconds // 60)
-        return f"{mins} minute{'s' if mins != 1 else ''} ago"
-    elif seconds < 86400:
-        hours = int(seconds // 3600)
-        return f"{hours} hour{'s' if hours != 1 else ''} ago"
-    else:
-        days = int(seconds // 86400)
-        return f"{days} day{'s' if days != 1 else ''} ago"
-
-
-# Auto Logout
+# Auto Logout redirect
 @admin_bp.route("/logout")
 def logout():
-    logout_user()  # Logs out the user
-    session.clear()  # Clears session data
-    return render_template("auth/login.html")  # Redirect to login page
+    return redirect(url_for("auth.logout"))
 
 
 @admin_bp.route("/dashboard")
 @login_required
+@admin_required
 def dashboard():
-    # Security Check
-    if current_user.role not in ["superadmin", "admin"]:
-        flash("Access Denied!", "danger")
-        return redirect(url_for("auth_bp.login"))
-
     now = get_now()
     today = now.date()
 
-    # ==========================================
-    # 1. NEW METRICS (Employees, Present, Logs)
-    # ==========================================
-
+    # 1. METRICS (Employees, Present, Logs)
     total_employees = User.query.filter(
         User.role.notin_(["superadmin", "admin"]), User.status == "active"
     ).count()
@@ -103,11 +47,11 @@ def dashboard():
     late_employees = 0
     pending_approvals = 0
 
-    # Fetch the 3 most recent activities, excluding superadmins
+    # Fetch 3 most recent activities
     recent_logs = (
         db.session.query(Logs, User)
-        .join(User, Logs.user_id == User.user_id)
-        .filter(User.role != "superadmin")
+        .outerjoin(User, Logs.user_id == User.user_id)
+        .filter(Logs.user_id != "superadmin")
         .order_by(Logs.timestamp.desc())
         .limit(3)
         .all()
@@ -115,8 +59,9 @@ def dashboard():
 
     recent_activities = []
     for log, user in recent_logs:
-        first_init = user.first_name[0].upper() if user.first_name else ""
-        last_init = user.last_name[0].upper() if user.last_name else ""
+        first_init = user.first_name[0].upper() if (user and user.first_name) else "S"
+        last_init = user.last_name[0].upper() if (user and user.last_name) else "Y"
+        user_name = f"{user.first_name} {user.last_name}" if user else "System"
 
         status_text = "Recorded"
         status_class = "neutral"
@@ -135,7 +80,7 @@ def dashboard():
         recent_activities.append(
             {
                 "initials": f"{first_init}{last_init}",
-                "name": f"{user.first_name} {user.last_name}",
+                "name": user_name,
                 "action": log.details or log.action,
                 "time": get_time_ago(log.timestamp),
                 "status": status_text,
@@ -143,10 +88,7 @@ def dashboard():
             }
         )
 
-    # ==========================================
     # 2. SHIFT PERFORMANCE METRICS
-    # ==========================================
-
     completed_records = Attendance.query.filter(
         Attendance.date == today, Attendance.clock_out.isnot(None)
     ).all()
@@ -178,32 +120,19 @@ def dashboard():
 
     num_completed_shifts = len(completed_records)
     if num_completed_shifts > 0:
-        average_hours_worked = round(
-            total_hours_worked / num_completed_shifts, 2
-        )
-        compliance_rate = round(
-            (compliant_shifts_count / num_completed_shifts) * 100
-        )
+        average_hours_worked = round(total_hours_worked / num_completed_shifts, 2)
+        compliance_rate = round((compliant_shifts_count / num_completed_shifts) * 100)
     else:
         average_hours_worked = 0.0
         compliance_rate = 0
 
-    # ==========================================
     # 3. TREND CALCULATIONS
-    # ==========================================
-
     avg_diff = round(average_hours_worked - 4, 2)
-    average_trend_class = (
-        "positive" if average_hours_worked >= 4 else "negative"
-    )
-    average_trend_text = (
-        f"+{avg_diff} hrs" if avg_diff > 0 else f"{avg_diff} hrs"
-    )
+    average_trend_class = "positive" if average_hours_worked >= 4 else "negative"
+    average_trend_text = f"+{avg_diff} hrs" if avg_diff > 0 else f"{avg_diff} hrs"
 
     overtime_trend_class = "negative" if overtime_hours > 0 else "positive"
-    overtime_trend_text = (
-        f"+{overtime_hours} hrs" if overtime_hours > 0 else f"{overtime_hours} hrs"
-    )
+    overtime_trend_text = f"+{overtime_hours} hrs" if overtime_hours > 0 else f"{overtime_hours} hrs"
 
     comp_diff = compliance_rate - 75
     compliance_trend_class = "positive" if compliance_rate >= 75 else "negative"
@@ -233,136 +162,103 @@ def dashboard():
 # VIEW USERS PAGE
 @admin_bp.route("/users")
 @login_required
+@admin_required
 def users():
-    if current_user.role not in ["superadmin", "admin"]:
-        flash("Access Denied!", "danger")
-        return render_template("auth/login.html")
-
     users_list = User.query.filter(
         User.role != "superadmin", User.status == "active"
     ).all()
-
-    return render_template(
-        "admin/users.html", current_user=current_user, users=users_list
-    )
+    return render_template("admin/users.html", current_user=current_user, users=users_list)
 
 
 # GIA SCHEDULE PAGE
 @admin_bp.route("/gia-schedule")
 @login_required
+@admin_required
 def gia_schedule():
-    if current_user.role not in ["superadmin", "admin"]:
-        flash("Access Denied!", "danger")
-        return render_template("auth/login.html")
-
-    users_list = User.query.filter(
-        User.role == "gia", User.status == "active"
-    ).all()
+    users_list = User.query.filter(User.role == "gia", User.status == "active").all()
     schedules = Schedule.query.all()
-
-    return render_template(
-        "admin/schedule.html", users=users_list, schedules=schedules
-    )
+    return render_template("admin/schedule.html", users=users_list, schedules=schedules)
 
 
 # DAILY LOGS PAGE
 @admin_bp.route("/daily-logs", methods=["GET"])
 @login_required
+@admin_required
 def daily_logs():
-    if current_user.role not in ["superadmin", "admin"]:
-        flash("Access Denied!", "danger")
-        return render_template("auth/login.html")
-
     users_list = (
         User.query.filter(User.role == "gia", User.status == "active")
         .order_by(User.first_name)
         .all()
     )
     today = get_now().date()
-
-    return render_template(
-        "admin/daily_logs.html", today=today, users=users_list
-    )
-
-
-# MANUAL LOGS PAGE
-@admin_bp.route("/manual-logs")
-@login_required
-def manual_logs():
-    if current_user.role not in ["superadmin", "admin"]:
-        flash("Access Denied!", "danger")
-        return render_template("auth/login.html")
-
-    month = get_now().strftime("%Y-%m")
-
-    return render_template("admin/manual_logs.html", month=month)
+    return render_template("admin/daily_logs.html", today=today, users=users_list)
 
 
 # EXPORT DTR PAGE
 @admin_bp.route("/export-dtr")
 @login_required
+@admin_required
 def export_dtr():
-    if current_user.role not in ["superadmin", "admin"]:
-        flash("Unauthorized access!", "danger")
-        return render_template("auth/login.html")
-
-    selected_month = (
-        request.args.get("month", "").strip() or get_now().strftime("%Y-%m")
-    )
-
+    selected_month = request.args.get("month", "").strip() or get_now().strftime("%Y-%m")
     return render_template("admin/export_dtr.html", month=selected_month)
 
 
 # DTR PRINT PAGE
 @admin_bp.route("/export")
 @login_required
+@admin_required
 def export_pdf():
-    if current_user.role not in ["superadmin", "admin"]:
-        return render_template("auth/login.html")
-
     now = get_now()
-    unit_head = GlobalSettings.query.first()
-    selected_month = (
-        request.args.get("month", "").strip() or now.strftime("%Y-%m")
-    )
+    unit_head = GlobalSettings.get()
+    selected_month = request.args.get("month", "").strip() or now.strftime("%Y-%m")
 
     try:
-        year, month = map(int, selected_month.split("-"))
-    except ValueError:
+        parts = selected_month.split("-")
+        year, month = int(parts[0]), int(parts[1])
+        if not (1 <= month <= 12 and 2000 <= year <= 2100):
+            raise ValueError()
+    except (ValueError, IndexError):
         flash("Invalid month format. Defaulting to current month.", "warning")
-        return redirect(
-            url_for("admin.export_pdf", month=now.strftime("%Y-%m"))
-        )
+        return redirect(url_for("admin.export_pdf", month=now.strftime("%Y-%m")))
 
     first_day = datetime(year, month, 1).date()
-    last_day = (first_day + timedelta(days=32)).replace(day=1) - timedelta(
-        days=1
-    )
+    last_day = (first_day + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     total_days = (last_day - first_day).days + 1
 
-    local_holidays = holidays.country_holidays("PH", years=year)
+    try:
+        local_holidays = holidays.country_holidays("PH", years=year)
+    except Exception:
+        local_holidays = {}
 
     day_status_dict = {}
     current_date = first_day
     while current_date <= last_day:
         date_str = current_date.strftime("%Y-%m-%d")
-
         if current_date in local_holidays:
             day_status_dict[date_str] = local_holidays.get(current_date)
         elif current_date.weekday() == 6:  # 6 is Sunday
             day_status_dict[date_str] = "Sunday"
         else:
             day_status_dict[date_str] = None
-
         current_date += timedelta(days=1)
 
-    users_list = (
-        User.query.filter(
-            User.role.notin_(["superadmin", "admin"]), User.status == "active"
+    target_user_id = request.args.get("user_id", "").strip()
+    if target_user_id:
+        users_list = (
+            User.query.filter(User.user_id == target_user_id)
+            .all()
         )
-        .order_by(User.last_name)
-        .all()
-    )
+        if not users_list:
+            flash("Selected assistant not found.", "warning")
+            return redirect(url_for("admin.export_pdf", month=selected_month))
+    else:
+        users_list = (
+            User.query.filter(
+                User.role.notin_(["superadmin", "admin"]), User.status == "active"
+            )
+            .order_by(User.last_name)
+            .all()
+        )
 
     attendance_records = (
         Attendance.query.filter(
@@ -373,7 +269,7 @@ def export_pdf():
     )
 
     attendance_dict = {}
-    total_hours_dict = {str(u.user_id): "0:00" for u in users_list}
+    total_hours_dict = {str(u.user_id): 0.0 for u in users_list}
 
     def to_datetime(val, record_date):
         if val is None:
@@ -416,7 +312,7 @@ def export_pdf():
     for user in users_list:
         user_key = str(user.user_id)
         total_seconds = 0
-        for date_key, shifts in attendance_dict.get(user_key, {}).items():
+        for _date_key, shifts in attendance_dict.get(user_key, {}).items():
             for shift in ("shift1", "shift2"):
                 t_in = shifts[shift]["in"]
                 t_out = shifts[shift]["out"]
@@ -431,9 +327,7 @@ def export_pdf():
         decimal_hours = round(total_seconds / 3600, 2)
         total_hours_dict[user_key] = decimal_hours
 
-    user_pairs = [
-        users_list[i : i + 2] for i in range(0, len(users_list), 2)
-    ]
+    user_pairs = [users_list[i : i + 2] for i in range(0, len(users_list), 2)]
 
     return render_template(
         "admin/dtr_report.html",
@@ -450,107 +344,65 @@ def export_pdf():
     )
 
 
-# Account Settings (Change Password)
+# Account Settings redirects to Profile (where password change is handled)
 @admin_bp.route("/account-settings", methods=["GET", "POST"])
 @login_required
+@admin_required
 def account_settings():
-    if request.method == "POST":
-        current_password = request.form.get("current_password")
-        new_password = request.form.get("new_password")
-        confirm_password = request.form.get("confirm_password")
-
-        if not check_password_hash(current_user.password, current_password):
-            flash("Current password is incorrect!", "danger")
-            return redirect(url_for("admin.account_settings"))
-
-        if new_password != confirm_password:
-            flash("New passwords do not match!", "danger")
-            return redirect(url_for("admin.account_settings"))
-
-        if len(new_password) < 8 or not any(
-            char.isdigit() for char in new_password
-        ):
-            flash(
-                "Password must be at least 8 characters long and contain a number!",
-                "danger",
-            )
-            return redirect(url_for("admin.account_settings"))
-
-        try:
-            current_user.password = generate_password_hash(new_password)
-
-            log_entry = Logs(
-                admin_id=current_user.user_id,
-                action="Updated Account Password",
-                details="Password changed successfully.",
-                timestamp=get_now(),
-            )
-            db.session.add(log_entry)
-            db.session.commit()
-
-            flash("Password updated successfully!", "success")
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error updating password: {e}", "danger")
-
-    return render_template("admin/account_settings.html")
+    return redirect(url_for("admin.profile"))
 
 
 # SETTINGS PAGE
 @admin_bp.route("/settings")
 @login_required
+@admin_required
 def settings():
-    if current_user.role not in ["superadmin", "admin"]:
-        flash("Access Denied!", "danger")
-        return render_template("auth/login.html")
-
     return render_template("admin/settings.html")
-
-
-# Auto-disable strict mode if expired
-def update_strict_mode():
-    settings_obj = GlobalSettings.query.first()
-    if not settings_obj or settings_obj.strict_duration is None:
-        return
-
-    now = get_now()
-    today = now.date()
-
-    if not settings_obj.enable_strict_schedule:
-        if today >= settings_obj.strict_duration:
-            settings_obj.enable_strict_schedule = True
-            settings_obj.strict_duration = None
-
-            entry = Logs(
-                user_id="admin",
-                action="Update",
-                details=f"SYSTEM: Open mode expired on {today}, strict mode reactivated.",
-                timestamp=now,
-            )
-            db.session.add(entry)
-            db.session.commit()
 
 
 # ADMIN PROFILE PAGE
 @admin_bp.route("/profile")
 @login_required
+@admin_required
 def profile():
-    if current_user.role not in ["superadmin", "admin"]:
-        flash("Access Denied!", "danger")
-        return render_template("auth/login.html")
-
     return render_template("admin/profile.html", user=current_user)
 
 
 # AUDIT LOG PAGE
 @admin_bp.route("/audit-logs")
 @login_required
+@admin_required
 def audit_logs():
-    if current_user.role not in ["superadmin", "admin"]:
-        flash("Unauthorized access!", "danger")
-        return render_template("auth/login.html")
-
     today = get_now().date()
-
     return render_template("admin/audit_logs.html", today=today)
+
+
+# GIA LOGS & ANALYTICS PAGE
+@admin_bp.route("/gia-logs")
+@login_required
+@admin_required
+def gia_logs():
+    selected_user_id = request.args.get("user_id", "").strip()
+    selected_month = request.args.get("month", "").strip() or get_now().strftime("%Y-%m")
+
+    gia_users = (
+        User.query.filter(User.role == "gia")
+        .order_by(User.status.asc(), User.last_name.asc(), User.first_name.asc())
+        .all()
+    )
+
+    selected_gia = None
+    if selected_user_id:
+        selected_gia = User.query.filter_by(user_id=selected_user_id).first()
+    elif gia_users:
+        selected_gia = gia_users[0]
+        selected_user_id = selected_gia.user_id
+
+    return render_template(
+        "admin/gia_logs.html",
+        gia_users=gia_users,
+        selected_gia=selected_gia,
+        selected_user_id=selected_user_id,
+        selected_month=selected_month,
+    )
+

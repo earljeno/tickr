@@ -1,129 +1,162 @@
-# Tikr – Office-Centered Daily Time Record
+# Tickr – Office Daily Time Record (DTR) & Attendance System
 
-Tickr is a simplified, office-focused Daily Time Record (DTR) and employee attendance system built with Flask. It provides a comprehensive suite for managing employee schedules, tracking time logs, and generating reports, with distinct portals for administrators and employees (GIAs).
+Tickr is a Daily Time Record (DTR) and attendance management web application built with modern Flask, SQLAlchemy, and Bootstrap. Designed for university and office computer centers, it provides distinct portals for administrative oversight and employee/student assistant (GIA) time logging.
+
+---
 
 ## Key Features
 
-### Admin Panel
-*   **Dashboard:** An at-a-glance overview of key metrics, including total employees, currently present employees, late arrivals, and recent system activity.
-*   **User Management:** Full CRUD (Create, Read, Update, Delete) functionality for managing user accounts (Admins and GIAs).
-*   **Schedule Management:** Assign and manage work schedules for GIAs based on daily blocks (MW, TTh, Fri, Sat), with support for split shifts.
-*   **Time Log Management:** View and edit daily attendance records. Manually add logs for corrections or special cases.
-*   **DTR Reports:** Generate and export monthly Daily Time Records for all employees into a printable PDF format.
-*   **Audit Logs:** A detailed trail of all significant actions performed within the system, filterable by date, user, and action type.
-*   **System Settings:** Configure system-wide policies, including the unit head's name for reports, default working hours, and clock-in/out rules like "Strict Mode".
+### Admin Portal (`/admin`)
+- **Interactive Dashboard:** Real-time visibility into present personnel, shift compliance rates, average hours worked, overtime metrics, and live activity feeds.
+- **User Management:** Full CRUD management for administrators and GIAs with status toggling (`active` / `inactive`), Philippine phone number normalization, and CSV export.
+- **Schedule Management:** Flexible block scheduling (`MW`, `TTh`, `Fri`, `Sat`) with support for split/broken shifts and schedule purging.
+- **Daily Attendance Logs:** Real-time attendance log review with manual entry creation, time corrections, and date-filtered queries.
+- **Printable DTR Export:** Monthly Daily Time Record generator with automatic Philippine regular and special holiday calculation and printable dual-card PDF layouts.
+- **Audit Logging:** System-wide action audit trail with date-range filters, user search, and client IP tracking.
+- **Global Settings:** Centralized configuration of unit head name, strict schedule mode, grace periods, and shift boundaries.
 
-### Employee (GIA) Portal
-*   **Attendance Dashboard:** A personalized view of rendered hours, remaining hours for the month, and a summary of recent activity.
-*   **Clock-in / Clock-out:** Simple, real-time clock-in and clock-out functionality. The system validates actions against the user's assigned schedule.
-*   **Schedule Viewing:** Employees can view their assigned work schedule for the week.
-*   **IP-Based Restriction:** Access to the GIA portal can be restricted to specific IP addresses (e.g., office network only) for enhanced security.
+### Employee (GIA) Portal (`/dashboard`)
+- **One-Click Clock-In / Clock-Out:** Instant kiosk-style attendance logging validating against the user's weekly block schedule.
+- **Live Session Tracker:** Dynamic elapsed time counter tracking hours rendered in real time.
+- **Schedule Viewer:** Modal displaying assigned daily shifts and split shift times.
+- **Monthly Summary:** Rendered hours vs target hours and active days worked.
+- **Network / IP Restriction:** Configurable IP whitelisting to prevent unauthorized off-site clock-ins.
+
+---
 
 ## Tech Stack
 
-*   **Backend:** Python, Flask, SQLAlchemy, Flask-Login, Flask-Migrate
-*   **Database:** MySQL
-*   **Frontend:** HTML, CSS, JavaScript, Bootstrap
-*   **WSGI Server:** Waitress
+- **Backend:** Python 3.11+, Flask 3.1, Flask-SQLAlchemy 3.1, Flask-Login 0.6, Flask-Migrate 4.1
+- **Database:** SQLite (local development and automated testing) / MySQL 8.0+ (production)
+- **Frontend:** HTML5, CSS3, JavaScript (ES6+), Bootstrap 5.3
+- **WSGI Server:** Waitress (Windows / Production)
+- **Tooling:** Ruff (linting), Pytest & Pytest-Cov (testing), Alembic (migrations)
 
-## Project Structure
+---
 
-The repository is organized to separate concerns, making it easier to navigate and maintain.
+## Architecture & Project Layout
+
+Tickr utilizes the standard Flask Application Factory pattern (`create_app`) with modular blueprints:
 
 ```
 /
-├── app.py                  # Main Flask application entrypoint
-├── config.py               # Configuration loader (from .env)
-├── requirements.txt        # Project dependencies
+├── app.py                  # Application factory and CLI commands (init-db, seed-admin)
+├── config.py               # Environment configuration (Development, Testing, Production)
+├── requirements.txt        # Production dependencies
+├── pyproject.toml          # Tooling configuration (Ruff & Pytest)
 ├── models/
-│   └── models.py           # SQLAlchemy database models
+│   └── models.py           # SQLAlchemy database models (User, Attendance, Schedule, GlobalSettings, Logs)
 ├── routes/
-│   ├── admin.py            # Routes for the admin panel
-│   ├── api.py              # RESTful API endpoints for the frontend
-│   ├── auth.py             # Authentication routes (login/logout)
-│   └── gia.py              # Routes for the GIA (employee) portal
+│   ├── auth.py             # Authentication endpoints (/auth/login, /auth/logout)
+│   ├── admin.py            # Admin panel controllers (/admin/dashboard, users, schedule, dtr)
+│   ├── gia.py              # Employee portal controllers (/dashboard, /blocked)
+│   └── api.py              # RESTful API endpoints for UI interactions
+├── utils/
+│   ├── decorators.py       # @admin_required, @gia_required, @ip_whitelist_required
+│   ├── formatters.py       # Phone number normalization and time parsing helpers
+│   ├── logging.py          # Unified system action audit logger
+│   ├── network.py          # Safe client IP resolution and whitelist validation
+│   └── timezone.py         # Asia/Manila timezone utilities and relative time helpers
 ├── static/
-│   ├── css/                # Stylesheets
-│   └── js/                 # JavaScript for frontend logic
-└── templates/
-    ├── admin/              # Admin-facing HTML templates
-    ├── auth/               # Auth-related templates (login page)
-    └── gia/                # GIA-facing HTML templates
+│   ├── css/                # Custom stylesheets
+│   └── js/                 # Modular client-side scripts (sanitized DOM rendering)
+├── templates/
+│   ├── admin/              # Admin HTML templates
+│   ├── auth/               # Login templates
+│   └── gia/                # Employee portal templates
+└── tests/                  # Automated test suite (36 unit & integration tests)
 ```
+
+---
 
 ## Getting Started
 
-Follow these instructions to set up and run the project locally.
-
 ### Prerequisites
 
-*   Python 3.8+
-*   MySQL Server
-*   A virtual environment tool (e.g., `venv`)
-
-### Configuration
-
-1.  Create a `.env` file in the root directory of the project.
-2.  Add the following environment variables, replacing the placeholder values with your own:
-
-    ```env
-    # Flask Configuration
-    SECRET_KEY='your_strong_secret_key_here'
-
-    # Database Configuration
-    DB_HOST='localhost'
-    DB_USER='your_mysql_user'
-    DB_PASS='your_mysql_password'
-    DB_NAME='tickr_db'
-    ```
+- Python 3.11+
+- Git
+- (Optional for production) MySQL Server 8.0+
 
 ### Installation
 
-1.  **Clone the repository:**
-    ```sh
-    git clone https://github.com/earlhsjks/tickr.git
-    cd tickr
-    ```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/earlhsjks/tickr.git
+   cd tickr
+   ```
 
-2.  **Create and activate a virtual environment:**
-    ```sh
-    # For macOS/Linux
-    python3 -m venv venv
-    source venv/bin/activate
+2. **Create and activate a virtual environment:**
+   ```bash
+   # Windows (PowerShell)
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
 
-    # For Windows
-    python -m venv venv
-    .\venv\Scripts\activate
-    ```
+   # Linux / macOS
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
 
-3.  **Install the required packages:**
-    ```sh
-    pip install -r requirements.txt
-    ```
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   pip install pytest ruff
+   ```
 
-4.  **Set up the database:**
-    *   Ensure your MySQL server is running and you have created a database named `tickr_db` (or the name you specified in `.env`).
-    *   Initialize the database schema and create the default admin user by uncommenting `initialize_database()` in `app.py` and running the app once.
+4. **Environment Setup:**
+   Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+   *Note: If no MySQL environment variables (`DB_USER`, `DB_NAME`, `DB_HOST`) are specified, Tickr automatically initializes a local SQLite database at `instance/tickr.db`.*
 
-    ```python
-    # In app.py, temporarily uncomment this line:
-    # initialize_database()
+5. **Initialize Database & Seed Superadmin:**
+   ```bash
+   flask init-db
+   flask seed-admin
+   ```
+   Default credentials:
+   - **Admin Username:** `superadmin`
+   - **Admin Password:** `admin123`
 
-    # The default superadmin credentials are:
-    # Username: superadmin
-    # Password: admin123
-    ```
+---
 
-### Running the Application
+## Running the Application
 
-Once the setup is complete, run the Flask application:
-
-```sh
+### Development Server:
+```bash
 python app.py
 ```
+Access at `http://localhost:3005`.
 
-The application will be available at `http://127.0.0.1:5001`.
+### Production Server (Waitress):
+```bash
+waitress-serve --host=0.0.0.0 --port=3005 app:app
+```
+
+---
+
+## Running Tests & Quality Checks
+
+Run the complete test suite:
+```bash
+pytest -v
+```
+
+Run code formatting and lint verification:
+```bash
+ruff check .
+```
+
+---
+
+## Security Notes
+
+1. **Secret Key:** Always set a cryptographically secure `SECRET_KEY` in `.env` before deploying to production.
+2. **Kiosk Login:** The employee portal is designed for rapid station clock-ins by school ID. Restrict station access using `IP_WHITELIST` in `.env`.
+3. **Change Superadmin Password:** Upon initial installation, log in as `superadmin` and immediately change the password via the Profile Settings page.
+
+---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+This project is open-source software licensed under the [MIT License](LICENSE).

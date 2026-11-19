@@ -21,47 +21,45 @@ function loadLogs() {
 
             logs.forEach(record => {
                 const tr = document.createElement("tr");
+                const safeInitial = typeof escapeHtml === 'function' ? escapeHtml(record.name_initial) : record.name_initial;
+                const safeName = typeof escapeHtml === 'function' ? escapeHtml(record.full_name) : record.full_name;
+                const safeUserId = typeof escapeHtml === 'function' ? escapeHtml(record.user_id) : record.user_id;
+                const safeClockIn = typeof escapeHtml === 'function' ? escapeHtml(record.clock_in) : record.clock_in;
+                const safeClockOut = typeof escapeHtml === 'function' ? escapeHtml(record.clock_out) : record.clock_out;
+                const safeHours = typeof escapeHtml === 'function' ? escapeHtml(record.total_hours) : record.total_hours;
+                const safeLogId = typeof escapeHtml === 'function' ? escapeHtml(record.log_id) : record.log_id;
 
                 tr.innerHTML = `
                         <td class="ps-4">
                             <div class="d-flex align-items-center">
-                                <div class="user-avatar me-3">${record.name_initial}</div>
+                                <div class="user-avatar me-3">${safeInitial}</div>
                                 <div>
-                                    <div class="user-name">${record.full_name}</div>
-                                    <div class="user-email">${record.user_id}</div>
+                                    <div class="user-name">${safeName}</div>
+                                    <div class="user-email">${safeUserId}</div>
                                 </div>
                             </div>
                         </td>
-                        <!-- <td>
-                            <span class="department-badge engineering">Engineering</span>
-                        </td> -->
                         <td>
                             <div class="time-log">
-                                <div class="time-display text-center">${record.clock_in}</div>
-                                <!-- <small class="text-muted">On time</small>-->
+                                <div class="time-display text-center">${safeClockIn}</div>
                             </div>
                         </td>
                         <td>
                             <div class="time-log">
-                                <div class="time-display text-center">${record.clock_out}</div>
-                                <!-- <small class="text-muted">Regular time</small>-->
+                                <div class="time-display text-center">${safeClockOut}</div>
                             </div>
                         </td>
                         <td>
                             <div class="total-hours">
-                                <div class="hours-display text-center">${record.total_hours} hrs</div>
-                                <!-- <small class="text-success">Complete</small> -->
+                                <div class="hours-display text-center">${safeHours} hrs</div>
                             </div>
                         </td>
-                        <!-- <td>
-                            <span class="status-badge completed">Completed</span>
-                        </td> -->
                         <td>
                             <div class="action-buttons d-flex justify-content-center">
-                                <button class="btn btn-sm btn-outline-primary" data-log-id="${record.log_id}" title="View Details" hidden>
+                                <button class="btn btn-sm btn-outline-primary" data-log-id="${safeLogId}" title="View Details" hidden>
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-warning" data-log-id="${record.log_id}" title="Edit Log">
+                                <button class="btn btn-sm btn-outline-warning" data-log-id="${safeLogId}" title="Edit Log">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             </div>

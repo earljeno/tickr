@@ -1,137 +1,123 @@
-from flask import Blueprint, render_template, redirect, url_for, request, abort
-from flask_login import login_required, current_user
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
-from models.models import db, Schedule, GlobalSettings
 
-gia_bp = Blueprint('gia', __name__)
+from flask import Blueprint, render_template
+from flask_login import current_user, login_required
 
-MANILA_TZ = ZoneInfo("Asia/Manila")
-def get_now():
-    return datetime.now(MANILA_TZ)
+from models.models import AttendanceInconsistency, GlobalSettings, Schedule, db
+from utils.decorators import gia_required, ip_whitelist_required
+from utils.timezone import get_now
 
-def check_attendance_flags(attendance_entry):
-    """
-    Checks and updates attendance flags based on clock-in and clock-out times.
-    Handles late arrivals, early departures, and overtime detection.
+gia_bp = Blueprint("gia", __name__)
+
+
+def check_attendance_flags(attendance_entry) -> None:
+    """Check and record attendance inconsistencies (late arrivals, early departures, overtime).
+
     Excludes weekends (Saturday and Sunday).
     """
-
-    settings = GlobalSettings.query.first()  # Assuming only one settings row exists
+    settings = GlobalSettings.get()
     strict_mode = settings.enable_strict_schedule if settings else False
 
-    if not strict_mode:
+    if not strict_mode or not attendance_entry or not attendance_entry.clock_in:
         return
 
-    if not attendance_entry or not attendance_entry.clock_in:
+    record_date = attendance_entry.date
+    if record_date.weekday() in [5, 6]:  # Saturday (5) and Sunday (6)
         return
 
-    today = attendance_entry.clock_in.date()
-
-    if today.weekday() in [5, 6]:
+    # Map day to schedule blocks
+    day_name = record_date.strftime("%A").lower()
+    day_map = {
+        "monday": "mw",
+        "wednesday": "mw",
+        "tuesday": "tth",
+        "thursday": "tth",
+        "friday": "fri",
+        "saturday": "sat",
+    }
+    block = day_map.get(day_name)
+    if not block:
         return
 
+    user_schedule = Schedule.query.filter_by(
+        user_id=attendance_entry.user_id, day=block
+    ).first()
+
+    if not user_schedule or not user_schedule.start_time or not user_schedule.end_time:
+        return
+
+    schedule_start = datetime.combine(record_date, user_schedule.start_time)
+    schedule_end = datetime.combine(record_date, user_schedule.end_time)
+    clock_in_dt = datetime.combine(record_date, attendance_entry.clock_in)
     allowed_late_minutes = 0
 
-    user_schedule = Schedule.query.filter_by(user_id=attendance_entry.user_id, day=today.strftime('%A')).first()
-
-    if not user_schedule:
-        return
-
-    schedule_start = datetime.combine(today, user_schedule.start_time)
-    schedule_end = datetime.combine(today, user_schedule.end_time)
-
     # LATE: Clock-in is after scheduled start + grace period
-    if attendance_entry.clock_in > schedule_start + timedelta(minutes=allowed_late_minutes):
-        db.session.add(AttendanceInconsistency(
-            user_id=attendance_entry.user_id,
-            date=today,
-            issue_type="Late",
-            details=f"Clock-in at {attendance_entry.clock_in.strftime('%I:%M %p')}, scheduled start {schedule_start.strftime('%I:%M %p')}"
-        ))
+    if clock_in_dt > schedule_start + timedelta(minutes=allowed_late_minutes):
+        db.session.add(
+            AttendanceInconsistency(
+                user_id=attendance_entry.user_id,
+                date=record_date,
+                issue_type="Late",
+                details=(
+                    f"Clock-in at {clock_in_dt.strftime('%I:%M %p')}, "
+                    f"scheduled start {schedule_start.strftime('%I:%M %p')}"
+                ),
+            )
+        )
 
     # EARLY OUT: Clock-out before scheduled end
-    if attendance_entry.clock_out and attendance_entry.clock_out < schedule_end:
-        db.session.add(AttendanceInconsistency(
-            user_id=attendance_entry.user_id,
-            date=today,
-            issue_type="Early Out",
-            details=f"Clock-out at {attendance_entry.clock_out.strftime('%I:%M %p')}, scheduled end {schedule_end.strftime('%I:%M %p')}"
-        ))
-
-    # OVERTIME: Work exceeds scheduled shift + buffer (default 4 hours)
     if attendance_entry.clock_out:
-        work_duration = attendance_entry.clock_out - attendance_entry.clock_in
+        clock_out_dt = datetime.combine(record_date, attendance_entry.clock_out)
+        if clock_out_dt < schedule_end:
+            db.session.add(
+                AttendanceInconsistency(
+                    user_id=attendance_entry.user_id,
+                    date=record_date,
+                    issue_type="Early Out",
+                    details=(
+                        f"Clock-out at {clock_out_dt.strftime('%I:%M %p')}, "
+                        f"scheduled end {schedule_end.strftime('%I:%M %p')}"
+                    ),
+                )
+            )
+
+        # OVERTIME: Work exceeds scheduled shift + buffer (default 4 hours)
+        work_duration = clock_out_dt - clock_in_dt
         scheduled_duration = schedule_end - schedule_start
         overtime_threshold = timedelta(hours=4)
 
         if work_duration > scheduled_duration + overtime_threshold:
-            db.session.add(AttendanceInconsistency(
-                user_id=attendance_entry.user_id,
-                date=today,
-                issue_type="Overtime",
-                details=f"Worked {work_duration}, scheduled {scheduled_duration}"
-            ))
+            db.session.add(
+                AttendanceInconsistency(
+                    user_id=attendance_entry.user_id,
+                    date=record_date,
+                    issue_type="Overtime",
+                    details=f"Worked {work_duration}, scheduled {scheduled_duration}",
+                )
+            )
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
-# Client IP Resolver
-def get_client_ip():
-    # Cloudflare real client IP
-    cf_ip = request.headers.get("CF-Connecting-IP")
-    if cf_ip:
-        return cf_ip
-
-    # Generic proxy header
-    xff = request.headers.get("X-Forwarded-For")
-    if xff:
-        return xff.split(",")[0].strip()
-
-    # Direct connection
-    return request.remote_addr
-
-WHITELIST = {
-    "localhost",
-    "127.0.0.1",
-    "172.16.255.237", # GIA Station
-    "172.16.255.236", # Printing 1
-    "172.16.254.255", # Printing 2
-}
-
-SPECIAL_IDS = {
-    "2024998"
-}
-
-# Decorator to apply to specific routes
-def ip_whitelist():
-    def wrapper(fn):
-        def decorated(*args, **kwargs):
-            if current_user.is_authenticated and current_user.user_id not in SPECIAL_IDS:
-                client_ip = get_client_ip()
-                if client_ip not in WHITELIST:
-                    return redirect(url_for('gia.blocked'))
-            return fn(*args, **kwargs)
-        decorated.__name__ = fn.__name__
-        return decorated
-    return wrapper
 
 # Employee Dashboard
-@gia_bp.route('/dashboard')
+@gia_bp.route("/dashboard")
 @login_required
+@gia_required
+@ip_whitelist_required
 def dashboard():
-    if current_user.role != 'gia':
-        return redirect(url_for('admin.dashboard'))
-    
-    month = get_now().today().strftime("%Y-%m")
-    
-    return render_template('/gia/dashboard.html', user=current_user, month=month)
+    month = get_now().strftime("%Y-%m")
+    return render_template("gia/dashboard.html", user=current_user, month=month)
 
-# Route to redirect unauthorized users
-@gia_bp.route('/blocked')
+
+# Route to display access denied to unauthorized / blocked IPs
+@gia_bp.route("/blocked")
 def blocked():
-    return render_template('gia/access_denied.html', user=current_user)
+    return render_template("gia/access_denied.html", user=current_user), 403
 
-# Global error handler for 403
-@gia_bp.errorhandler(403)
-def forbidden(e):
-    return redirect(url_for('gia.blocked'))
+
+# Backwards compatibility export
+WHITELIST = set()
+SPECIAL_IDS = set()
