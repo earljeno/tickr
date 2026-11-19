@@ -213,3 +213,28 @@ def test_split_shift_attendance_flags(app):
         assert early_flag is not None
         assert "primary shift" in early_flag.details
         assert "12:00 PM" in early_flag.details
+
+
+def test_ip_whitelist_allows_dashboard_view_but_blocks_clocking(gia_client, monkeypatch):
+    """GIA users can view their dashboard on non-whitelisted devices, but clock in/out is blocked."""
+    # Simulate an external / non-whitelisted device IP
+    monkeypatch.setattr("utils.decorators.is_ip_whitelisted", lambda user_id=None, client_ip=None: False)
+
+    # Dashboard view remains accessible so users can view their records and info
+    dash_res = gia_client.get("/dashboard")
+    assert dash_res.status_code == 200
+    assert b"GIA Portal" in dash_res.data or b"Time Clock" in dash_res.data
+
+    # Clock in must be blocked with 403 on non-official devices
+    clock_in_res = gia_client.post("/api/clock-in", json={"user_id": "2024001"})
+    assert clock_in_res.status_code == 403
+    in_data = clock_in_res.get_json()
+    assert in_data["success"] is False
+    assert "Your device is not allowed" in in_data["error"]
+
+    # Clock out must also be blocked with 403 on non-official devices
+    clock_out_res = gia_client.post("/api/clock-out", json={"user_id": "2024001"})
+    assert clock_out_res.status_code == 403
+    out_data = clock_out_res.get_json()
+    assert out_data["success"] is False
+    assert "Your device is not allowed" in out_data["error"]

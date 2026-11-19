@@ -4,7 +4,7 @@ from flask import Blueprint, render_template
 from flask_login import current_user, login_required
 
 from models.models import AttendanceInconsistency, GlobalSettings, Schedule, db
-from utils.decorators import gia_required, ip_whitelist_required
+from utils.decorators import gia_required
 from utils.timezone import get_now
 
 gia_bp = Blueprint("gia", __name__)
@@ -189,7 +189,6 @@ def check_attendance_flags(attendance_entry) -> None:
 @gia_bp.route("/dashboard")
 @login_required
 @gia_required
-@ip_whitelist_required
 def dashboard():
     month = get_now().strftime("%Y-%m")
     return render_template("gia/dashboard.html", user=current_user, month=month)
