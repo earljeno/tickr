@@ -290,29 +290,24 @@ function renderLogsTable(records) {
         const tr = document.createElement('tr');
         const hoursNum = parseFloat(record.total_hours) || 0.0;
 
-        // Dynamic schedule-aware badge formatting
-        const statusText = record.status || (record.clock_in && record.clock_out ? 'Completed' : (record.clock_in ? 'On Duty' : 'Incomplete'));
-        const badgeType = record.badge_type || 'secondary';
-        const detailsTooltip = record.status_details ? `data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(record.status_details)}"` : '';
+        // Standard status badge formatting: Completed, On Duty, Incomplete
+        const statusText = record.status || (record.clock_in && record.clock_out ? 'Completed' : (record.clock_in && record.is_today ? 'On Duty' : 'Incomplete'));
 
         let badgeClasses = 'bg-secondary-subtle text-secondary border';
         let badgeIcon = 'bi-dash-circle';
 
-        if (badgeType === 'success') {
+        if (statusText === 'Completed') {
             badgeClasses = 'bg-success-subtle text-success border border-success-subtle';
             badgeIcon = 'bi-check-circle-fill';
-        } else if (badgeType === 'warning') {
-            badgeClasses = 'bg-warning-subtle text-warning-emphasis border border-warning-subtle';
-            badgeIcon = 'bi-exclamation-triangle-fill';
-        } else if (badgeType === 'danger') {
-            badgeClasses = 'bg-danger-subtle text-danger border border-danger-subtle';
-            badgeIcon = 'bi-x-circle-fill';
-        } else if (badgeType === 'info') {
+        } else if (statusText === 'On Duty') {
             badgeClasses = 'bg-primary-subtle text-primary border border-primary-subtle';
             badgeIcon = 'bi-broadcast';
+        } else {
+            badgeClasses = 'bg-secondary-subtle text-secondary border';
+            badgeIcon = 'bi-dash-circle';
         }
 
-        const statusBadge = `<span class="badge ${badgeClasses} d-inline-flex align-items-center gap-1" ${detailsTooltip} style="cursor: ${record.status_details ? 'help' : 'default'};">
+        const statusBadge = `<span class="badge ${badgeClasses} d-inline-flex align-items-center gap-1">
             <i class="bi ${badgeIcon}"></i>
             <span>${escapeHtml(statusText)}</span>
         </span>`;
@@ -326,10 +321,6 @@ function renderLogsTable(records) {
         `;
         tbody.appendChild(tr);
     });
-
-    // Initialize Bootstrap tooltips if any
-    const tooltipTriggerList = [].slice.call(tbody.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 }
 
 function escapeHtml(str) {

@@ -304,28 +304,24 @@ function renderActivityTable(records) {
 
     records.forEach(record => {
         const tr = document.createElement('tr');
-        const statusText = record.status || (record.clock_in && record.clock_out ? 'Completed' : (record.clock_in ? 'On Duty' : 'Incomplete'));
+        const statusText = record.status || (record.clock_in && record.clock_out ? 'Completed' : (record.clock_in && record.is_today ? 'On Duty' : 'Incomplete'));
         const badgeType = record.badge_type || 'secondary';
-        const detailsTooltip = record.status_details ? `data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(record.status_details)}"` : '';
 
         let badgeClass = 'incomplete';
         let badgeIcon = 'bi-dash-circle';
 
-        if (badgeType === 'success') {
+        if (statusText === 'Completed' || badgeType === 'success') {
             badgeClass = 'completed';
             badgeIcon = 'bi-check-circle-fill';
-        } else if (badgeType === 'warning') {
-            badgeClass = 'late';
-            badgeIcon = 'bi-exclamation-triangle-fill';
-        } else if (badgeType === 'info') {
+        } else if (statusText === 'On Duty' || badgeType === 'info') {
             badgeClass = 'active';
             badgeIcon = 'bi-broadcast';
-        } else if (badgeType === 'secondary') {
-            badgeClass = 'unscheduled';
-            badgeIcon = 'bi-info-circle';
+        } else {
+            badgeClass = 'incomplete';
+            badgeIcon = 'bi-dash-circle';
         }
 
-        const statusBadge = `<span class="badge-status ${badgeClass}" ${detailsTooltip} style="cursor: ${record.status_details ? 'help' : 'default'};">
+        const statusBadge = `<span class="badge-status ${badgeClass}">
             <i class="bi ${badgeIcon}"></i> <span>${escapeHtml(statusText)}</span>
         </span>`;
 
@@ -338,10 +334,6 @@ function renderActivityTable(records) {
         `;
         tbody.appendChild(tr);
     });
-
-    // Initialize tooltips for status details
-    const tooltipTriggerList = [].slice.call(tbody.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 }
 
 function escapeHtml(str) {
