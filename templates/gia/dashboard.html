@@ -3,107 +3,201 @@
 
 <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GIA Dashboard - Tickr</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='media/ndmu_logo.png') }}">
-    <!-- Fonts & Icons -->
+    
+    <!-- Design System Typography: Inter & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons & Core Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Global Theme CSS & GIA Dashboard Stylesheet -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Tickr Design Tokens & Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gia_dashboard.css') }}">
 </head>
 
 <body>
-    <div class="main-container" style="display:none;">
+    <div class="main-container">
 
-        <!-- Header -->
-        <header class="page-header">
-            <div class="header-left">
-                <h1>Welcome, <span class="employee-name">{{ user.first_name }}</span></h1>
-                <p>View your attendance and work summary</p>
+        <!-- Top Navigation / Kiosk Header -->
+        <header class="gia-navbar" role="banner">
+            <div class="brand-wrapper">
+                <img src="{{ url_for('static', filename='media/ndmu_logo.png') }}" alt="NDMU Logo" class="ndmu-logo" />
+                <div class="header-meta">
+                    <h1>Welcome, <span class="text-primary">{{ user.first_name }}</span></h1>
+                    <p>Student Assistant Portal &bull; Lab: <strong>{{ user.laboratory or 'General' }}</strong></p>
+                </div>
             </div>
-            <div class="header-right">
-                <!-- <button class="btn btn-warning fw-semibold px-3 py-2 beta-btn me-1" data-bs-toggle="modal"
-                    data-bs-target="#betaNoticeModal">
-                    <i class="fas fa-flask me-1"></i> Beta
-                </button> -->
-                <button class="btn schedule-btn fw-semibold px-3 py-2 me-2" 
+            <div class="header-actions">
+                <button class="schedule-btn" 
                         data-bs-toggle="modal"
                         data-bs-target="#scheduleModal" 
-                        data-user-id="{{ user.user_id }}">
-                    <i class="fas fa-calendar-alt me-1"></i> Schedule
+                        data-user-id="{{ user.user_id }}"
+                        aria-label="View assigned work schedule">
+                    <i class="bi bi-calendar3 me-2"></i>My Schedule
                 </button>
-                <a class="btn logout-btn" href="{{ url_for('auth.logout') }}">
-                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                <a class="logout-btn" href="{{ url_for('auth.logout') }}" aria-label="Sign out">
+                    <i class="bi bi-box-arrow-right me-2"></i>Logout
                 </a>
             </div>
         </header>
 
-        <!-- Stats -->
-        <section class="stats-grid">
-            <div class="stat-card blue">
-                <div class="stat-icon"><i class="fas fa-clock"></i></div>
-                <div>
-                    <h4>Rendered Hours</h4>
-                    <p><span id="summaryTotalHours">-</span> hrs</p>
-                </div>
+        <!-- Hero Clock & Action Station -->
+        <section class="hero-card" aria-label="Time Clock Kiosk">
+            <!-- Active Status Beacon -->
+            <div>
+                <span class="status-badge-hero clocked-out" id="statusBadge">
+                    <span class="status-pulse-dot"></span>
+                    <span id="statusText">Checking Status...</span>
+                </span>
             </div>
-            <div class="stat-card yellow">
-                <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
-                <div>
-                    <h4>Hours Remaining</h4>
-                    <p><span id="summaryRemaining">-</span> hrs</p>
-                </div>
-            </div>
-            <div class="stat-card green">
-                <div class="stat-icon"><i class="fas fa-tasks"></i></div>
-                <div>
-                    <h4>Today's Progress</h4>
-                    <p><span id="summaryToday">-</span> hrs</p>
-                </div>
-            </div>
-            <div class="stat-card indigo">
-                <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
-                <div>
-                    <h4>Active Days</h4>
-                    <p><span id="summaryActiveDays">-</span> days</p>
-                </div>
-            </div>
-        </section>
 
-        <!-- Clock Section -->
-        <section class="clock-card">
-            <div class="current-time" id="currentTime">--:--:--</div>
-            <div class="status-text">You are currently <span class="fw-bold" id="statusText">Clocked Out</span></div>
-            <button class="clock-btn" id="clockBtn" data-user-id="{{ user.user_id }}">
-                <i class="fas fa-play me-2"></i>Clock In
+            <!-- Current Time & Date -->
+            <div class="clock-display" id="currentTime" aria-live="polite">--:--:--</div>
+            <div class="date-display" id="currentDate">--</div>
+
+            <!-- Big Interactive Clock-In / Clock-Out Action -->
+            <button class="clock-action-btn btn-clock-in" id="clockBtn" data-user-id="{{ user.user_id }}">
+                <i class="bi bi-play-fill"></i>
+                <span id="clockBtnLabel">Clock In</span>
             </button>
+
+            <!-- Active Shift Live Time Counter -->
+            <div class="live-timer-callout" id="activeShiftNotice" style="display: none;">
+                <i class="bi bi-clock-history me-1 text-primary"></i>
+                Shift underway since <span id="shiftStartTime" class="fw-semibold font-mono text-dark">-</span>. 
+                Current active session: <strong id="activeShiftDuration">0m</strong>
+            </div>
         </section>
 
-        <!-- Recent Activity -->
-        <section class="content-card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h2>Recent Activity</h2>
-                <input type="month" id="monthFilter" class="form-control form-control-sm w-auto" value="{{ month }}" />
+        <!-- KPI Metric Cards Grid -->
+        <section class="stats-grid" aria-label="Monthly Attendance Summary">
+            <!-- Total Hours Rendered -->
+            <div class="stat-card blue">
+                <div class="stat-icon-wrapper">
+                    <i class="bi bi-clock-fill"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Rendered Hours</div>
+                    <div class="stat-value-group">
+                        <span class="stat-number" id="summaryTotalHours">0.00</span>
+                        <span class="stat-unit">/ <span id="targetHoursLabel">100</span> hrs</span>
+                    </div>
+                    <div class="progress-track" title="Monthly target progress">
+                        <div class="progress-bar-fill" id="hoursProgressBar" style="width: 0%;"></div>
+                    </div>
+                    <div class="stat-subtitle" id="targetPercentageLabel">0% of requirement</div>
+                </div>
+            </div>
+
+            <!-- Hours Remaining -->
+            <div class="stat-card amber">
+                <div class="stat-icon-wrapper">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Hours Remaining</div>
+                    <div class="stat-value-group">
+                        <span class="stat-number" id="summaryRemaining">100.00</span>
+                        <span class="stat-unit">hrs</span>
+                    </div>
+                    <div class="stat-subtitle text-muted">Left to complete requirement</div>
+                </div>
+            </div>
+
+            <!-- Today's Progress -->
+            <div class="stat-card emerald">
+                <div class="stat-icon-wrapper">
+                    <i class="bi bi-stopwatch"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Today's Progress</div>
+                    <div class="stat-value-group">
+                        <span class="stat-number" id="summaryToday">0.00</span>
+                        <span class="stat-unit">hrs</span>
+                    </div>
+                    <div class="stat-subtitle text-success" id="liveTrackingSubtitle">
+                        <i class="bi bi-arrow-repeat me-1"></i>Live tracked
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Duty Days & Punctuality -->
+            <div class="stat-card indigo">
+                <div class="stat-icon-wrapper">
+                    <i class="bi bi-calendar-check-fill"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Active Days & Flags</div>
+                    <div class="stat-value-group">
+                        <span class="stat-number" id="summaryActiveDays">0</span>
+                        <span class="stat-unit">days</span>
+                    </div>
+                    <div class="stat-subtitle" id="flagsSummaryText">
+                        <span class="text-success"><i class="bi bi-check-circle me-1"></i>No flags recorded</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Daily Hours Trend Visualization -->
+        <section class="content-card" aria-label="Monthly Rendered Hours Trend">
+            <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                <h2><i class="bi bi-bar-chart-fill text-primary"></i>Daily Duty Hours Trend</h2>
+                <span class="badge bg-light text-secondary border font-mono" id="trendMonthBadge">This Month</span>
             </div>
             <div class="card-body">
+                <div class="trend-scroll-container">
+                    <div class="trend-bars-wrapper" id="trendBarsContainer">
+                        <!-- Dynamically populated by JS -->
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between text-muted small mt-3 pt-2 border-top">
+                    <span><i class="bi bi-square-fill text-primary me-1"></i> Completed Shift Hours</span>
+                    <span>Max Peak: <strong id="trendPeakHours" class="text-dark font-mono">0.00</strong> hrs/day</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Activity Table -->
+        <section class="content-card" aria-label="Attendance History">
+            <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+                <div>
+                    <h2><i class="bi bi-clock-history text-primary"></i>Attendance History</h2>
+                    <small class="text-muted">Review your verified daily time record logs</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="monthFilter" class="visually-hidden">Filter Month</label>
+                    <input type="month" id="monthFilter" class="form-control form-control-sm font-mono w-auto" value="{{ month }}" />
+                    <span class="badge bg-light text-secondary border font-mono" id="recordsCountBadge">0 Records</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle table-nowrap">
+                    <table class="table table-custom table-hover align-middle mb-0">
                         <thead>
                             <tr>
-                                <th class="text-center">Date</th>
-                                <th class="text-center">Time In</th>
-                                <th class="text-center">Time Out</th>
-                                <!-- <th class="text-center">Status</th> -->
-                                <th class="text-center">Total Hours</th>
+                                <th class="text-center" scope="col">Date</th>
+                                <th class="text-center" scope="col">Time In</th>
+                                <th class="text-center" scope="col">Time Out</th>
+                                <th class="text-center" scope="col">Status</th>
+                                <th class="text-center" scope="col">Duty Hours</th>
                             </tr>
                         </thead>
                         <tbody id="activityTableBody">
-                            <!-- JS POP -->
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                    Loading your attendance records...
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -111,98 +205,65 @@
         </section>
     </div>
 
-    <!-- Success Modal -->
-    <div class="modal fade" id="clockSuccessModal" tabindex="-1" aria-hidden="true">
+    <!-- Clock Success Modal -->
+    <div class="modal fade" id="clockSuccessModal" tabindex="-1" aria-labelledby="successTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content text-center success-modal">
-                <div class="modal-body">
-                    <div class="success-icon">
-                        <i class="fas fa-check-circle"></i>
+            <div class="modal-content text-center custom-kiosk-modal">
+                <div class="modal-body p-4">
+                    <div class="modal-icon-badge success">
+                        <i class="bi bi-check-lg"></i>
                     </div>
-                    <h5 class="fw-bold mt-3" id="successTitle">Clock In Successful!</h5>
-                    <p class="text-muted" id="successMessage">
-                        Your time has been recorded at <span id="successTime"></span>.
-                    </p>
-                    <button class="btn btn-primary mt-3 px-4" data-bs-dismiss="modal">OK</button>
+                    <h5 class="fw-bold mb-2" id="successTitle">Clock Action Recorded</h5>
+                    <p class="text-muted mb-4" id="successMessage">Your timestamp has been successfully verified.</p>
+                    <button class="btn btn-primary px-4 py-2 fw-semibold" data-bs-dismiss="modal">
+                        <i class="bi bi-check-circle me-1"></i>Continue
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Error Modal -->
-    <div class="modal fade" id="clockErrorModal" tabindex="-1" aria-hidden="true">
+    <!-- Clock Error Modal -->
+    <div class="modal fade" id="clockErrorModal" tabindex="-1" aria-labelledby="errorTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content text-center error-modal">
-                <div class="modal-body">
-                    <div class="error-icon">
-                        <i class="fas fa-times-circle"></i>
+            <div class="modal-content text-center custom-kiosk-modal">
+                <div class="modal-body p-4">
+                    <div class="modal-icon-badge error">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
                     </div>
-                    <h5 class="fw-bold mt-3" id="errorTitle">Action Failed</h5>
-                    <p class="text-muted" id="errorMessage">
-                        Something went wrong. Please try again.
-                    </p>
-                    <button class="btn btn-danger mt-3 px-4" data-bs-dismiss="modal">Close</button>
+                    <h5 class="fw-bold mb-2 text-danger" id="errorTitle">Action Could Not Be Completed</h5>
+                    <p class="text-muted mb-4" id="errorMessage">Please check your network connection and try again.</p>
+                    <button class="btn btn-secondary px-4 py-2 fw-semibold" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Beta Deployment Notice Modal -->
-    <div class="modal fade" id="betaNoticeModal" tabindex="-1" aria-hidden="true">
+    <!-- Schedule Modal -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content text-center beta-modal">
-                <div class="modal-body">
-                    <div class="beta-icon">
-                        <i class="fas fa-flask"></i>
+            <div class="modal-content custom-kiosk-modal">
+                <div class="modal-body p-4 text-center">
+                    <div class="modal-icon-badge info">
+                        <i class="bi bi-calendar3"></i>
                     </div>
-                    <h5 class="fw-bold mt-3">Beta Deployment</h5>
-                    <p class="text-muted small">
-                        This system is currently in <span class="fw-semibold text-warning">beta testing</span>.<br>
-                        You may encounter errors or unfinished features.
-                    </p>
-                    <div class="alert alert-warning small text-start mt-3 mb-0">
-                        <i class="fas fa-exclamation-circle me-1"></i>
-                        If you encounter an issue, please take a screenshot and notify the developer.
-                    </div>
-                    <div class="d-flex justify-content-center mt-4 gap-2">
-                        <button class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
-                        <button class="btn btn-primary px-4" id="reportBtn" disabled>
-                            <i class="fas fa-paper-plane me-2"></i>Report Issue
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Schedule Moadal -->
-    <div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content text-center schedule-modal">
-                <div class="modal-body">
-                    <div class="schedule-icon">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <h5 class="fw-bold mt-3">Your Work Schedule</h5>
-                    <p class="text-muted small mb-4">
-                        Here are your assigned working hours.
-                    </p>
+                    <h5 class="fw-bold mb-1" id="scheduleTitle">Your Assigned Schedule</h5>
+                    <p class="text-muted small mb-4">Official duty hours configured for your lab post</p>
                     
-                    <div class="text-start mb-4">
-                        <div class="text-start mb-4" id="scheduleListContainer">
-                            <div class="text-center text-muted my-3">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                Loading schedule...
-                            </div>
+                    <div class="text-start mb-4" id="scheduleListContainer">
+                        <div class="text-center text-muted py-3">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                            Loading schedule...
                         </div>
                     </div>
 
-                    <button class="btn btn-secondary px-5" data-bs-dismiss="modal">Close</button>
+                    <button class="btn btn-secondary px-4 py-2 fw-semibold w-100" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/gia_dashboard.js') }}"></script>
 </body>

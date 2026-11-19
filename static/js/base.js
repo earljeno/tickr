@@ -1,7 +1,66 @@
 /**
  * Tickr Base UI Interactions
- * Handles sidebar toggling, responsive overlays, active link tracking, and accessible alert notifications.
+ * Handles sidebar toggling, responsive overlays, active link tracking, accessible alert notifications,
+ * and global fetch interceptor with a top-of-page indeterminate progress bar.
  */
+
+// -----------------------------------------------------------------------------
+// Global API Loading Progress Bar (Active on All Fetch Calls)
+// -----------------------------------------------------------------------------
+(function setupGlobalFetchLoader() {
+    let activeRequests = 0;
+    let loadingBarEl = null;
+
+    function getLoadingBar() {
+        if (!loadingBarEl) {
+            loadingBarEl = document.getElementById("tickrGlobalLoadingBar");
+            if (!loadingBarEl && document.body) {
+                loadingBarEl = document.createElement("div");
+                loadingBarEl.id = "tickrGlobalLoadingBar";
+                loadingBarEl.setAttribute("aria-hidden", "true");
+                loadingBarEl.setAttribute("role", "progressbar");
+                loadingBarEl.setAttribute("aria-label", "Loading content...");
+                document.body.prepend(loadingBarEl);
+            }
+        }
+        return loadingBarEl;
+    }
+
+    function startLoading() {
+        activeRequests++;
+        const bar = getLoadingBar();
+        if (bar) {
+            bar.classList.add("active");
+        }
+    }
+
+    function stopLoading() {
+        activeRequests = Math.max(0, activeRequests - 1);
+        if (activeRequests === 0) {
+            const bar = getLoadingBar();
+            if (bar) {
+                bar.classList.remove("active");
+            }
+        }
+    }
+
+    // Intercept native window.fetch
+    if (typeof window.fetch === "function") {
+        const originalFetch = window.fetch;
+        window.fetch = async function (...args) {
+            startLoading();
+            try {
+                return await originalFetch.apply(this, args);
+            } finally {
+                stopLoading();
+            }
+        };
+    }
+
+    // Expose programmatic hooks if needed
+    window.tickrStartLoading = startLoading;
+    window.tickrStopLoading = stopLoading;
+})();
 
 document.addEventListener("DOMContentLoaded", () => {
     const sidebarToggler = document.getElementById("sidebarToggler");

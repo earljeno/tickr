@@ -211,6 +211,22 @@ function loadUsers() {
     const filters = getFilterValues();
     perPage = filters.perPage;
 
+    const tbody = document.getElementById('usersTableBody');
+    const showingInfo = document.getElementById('usersShowingInfo');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-5 text-muted">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    Loading users...
+                </td>
+            </tr>
+        `;
+    }
+    if (showingInfo) {
+        showingInfo.textContent = 'Loading user records...';
+    }
+
     fetch(`/api/users-data?${buildQueryString()}`)
         .then(res => {
             if (!res.ok) throw new Error(`Server responded with ${res.status}`);
@@ -314,6 +330,10 @@ function setupListeners() {
 
         if (editBtn) {
             currentEditingUserId = editBtn.dataset.userId;
+            const originalHTML = editBtn.innerHTML;
+            editBtn.disabled = true;
+            editBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+
             fetch(`/api/get-user/${currentEditingUserId}`)
                 .then(res => {
                     if (!res.ok) throw new Error(`Server responded with ${res.status}`);
@@ -336,11 +356,19 @@ function setupListeners() {
                 .catch(err => {
                     console.error('Failed to load user:', err);
                     showAlert('danger', 'Unable to load user details.');
+                })
+                .finally(() => {
+                    editBtn.disabled = false;
+                    editBtn.innerHTML = originalHTML;
                 });
         }
 
         if (deleteBtn) {
             const userId = deleteBtn.dataset.userId;
+            const originalDelHTML = deleteBtn.innerHTML;
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+
             fetch(`/api/get-user/${userId}`)
                 .then(res => {
                     if (!res.ok) throw new Error(`Server responded with ${res.status}`);
@@ -382,6 +410,10 @@ function setupListeners() {
                 .catch(err => {
                     console.error('Failed to load user:', err);
                     showAlert('danger', 'Unable to load user details.');
+                })
+                .finally(() => {
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = originalDelHTML;
                 });
         }
     });

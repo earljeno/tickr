@@ -1,13 +1,27 @@
+/**
+ * Tickr - GIA Dashboard Controller
+ * Real-time clocking, live attendance tracking, monthly trend visualization, and schedule view.
+ */
+
 const clockBtn = document.getElementById("clockBtn");
+const clockBtnLabel = document.getElementById("clockBtnLabel");
+const statusBadge = document.getElementById("statusBadge");
 const statusText = document.getElementById("statusText");
-const successModal = new bootstrap.Modal(document.getElementById("clockSuccessModal"));
-const errorModal = new bootstrap.Modal(document.getElementById("clockErrorModal"));
-const successTime = document.getElementById("successTime");
 const currentTimeDisplay = document.getElementById("currentTime");
+const currentDateDisplay = document.getElementById("currentDate");
+const activeShiftNotice = document.getElementById("activeShiftNotice");
+const shiftStartTimeEl = document.getElementById("shiftStartTime");
+const activeShiftDurationEl = document.getElementById("activeShiftDuration");
+
+const successModalEl = document.getElementById("clockSuccessModal");
+const errorModalEl = document.getElementById("clockErrorModal");
+const successModal = successModalEl ? new bootstrap.Modal(successModalEl) : null;
+const errorModal = errorModalEl ? new bootstrap.Modal(errorModalEl) : null;
+
 const monthFilter = document.getElementById("monthFilter");
 
 let isClockedIn = false;
-let is_grace = false;
+let isGrace = false;
 
 // Variables for Live Progress Tracking
 let baseTodayHours = 0;
@@ -15,54 +29,114 @@ let activeClockInTime = null;
 let liveProgressInterval = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Initialize clock and live calendar date display
     const updateClock = () => {
         const now = new Date();
-        currentTimeDisplay.textContent = now.toLocaleTimeString();
+        if (currentTimeDisplay) {
+            currentTimeDisplay.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        if (currentDateDisplay) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            currentDateDisplay.textContent = now.toLocaleDateString(undefined, options);
+        }
     };
 
     updateClock();
     setInterval(updateClock, 1000);
 
-    await loadRecords();
+    // 2. Load attendance data & status
     await checkButton();
-    manageLiveProgress(); // Start the live tracker on load
-    // await betaPopupCheck();
-});
+    await loadRecords();
+    manageLiveProgress();
 
-async function checkButton() {
-    const userId = clockBtn.getAttribute('data-user-id');
-    try {
-        const res = await fetch(`/api/status?user_id=${userId}`);
-        const data = await res.json();
-
-        isClockedIn = data.clocked_in && !data.clocked_out;
-        is_grace = data.is_grace;
-
-        clockBtn.innerHTML = isClockedIn && !is_grace
-            ? '<i class="fas fa-stop me-2"></i>Clock Out'
-            : '<i class="fas fa-play me-2"></i>Clock In';
-
-        if (isClockedIn && !is_grace) {
-            statusText.textContent = 'Clocked In';
-            statusText.style.color = "#059669";
-        } else {
-            statusText.textContent = 'Clocked Out';
-            statusText.style.color = "";
-        }
-    } catch (err) {
-        console.error('Error checking button status:', err);
-        statusText.textContent = "Status Check Failed";
-        clockBtn.disabled = true;
-        clockBtn.style.background = "gray";
+    // 3. Month Filter Change Listener
+    if (monthFilter) {
+        monthFilter.addEventListener("change", async () => {
+            await loadRecords();
+        });
     }
 
-    showPage();
+    // 4. Setup Schedule Modal Listener
+    setupScheduleModal();
+});
+
+function showPage() {
+    const main = document.querySelector('.main-container');
+    if (main) {
+        main.style.display = 'block';
+        // Allow DOM paint before adding opacity class
+        requestAnimationFrame(() => {
+            main.classList.add('visible');
+        });
+    }
 }
 
-async function loadRecords() {
+/**
+ * Check user status from /api/status and adapt button styling
+ */
+async function checkButton() {
+    if (!clockBtn) return;
+    const userId = clockBtn.getAttribute('data-user-id');
     try {
-        const userId = clockBtn.getAttribute('data-user-id');
-        const month = monthFilter.value;
+        const res = await fetch(`/api/status?user_id=${encodeURIComponent(userId)}`);
+        const data = await res.json();
+
+        isClockedIn = Boolean(data.clocked_in && !data.clocked_out);
+        isGrace = Boolean(data.is_grace);
+
+        updateClockButtonUI();
+    } catch (err) {
+        console.error('Error checking button status:', err);
+        if (statusText) statusText.textContent = "Status Check Failed";
+        clockBtn.disabled = true;
+    } finally {
+        showPage();
+    }
+}
+
+function updateClockButtonUI() {
+    if (!clockBtn) return;
+
+    if (isClockedIn && !isGrace) {
+        // State: Clocked In -> Next action is Clock Out
+        clockBtn.className = "clock-action-btn btn-clock-out";
+        clockBtn.innerHTML = '<i class="bi bi-stop-fill"></i> <span id="clockBtnLabel">Clock Out</span>';
+        
+        if (statusBadge) {
+            statusBadge.className = "status-badge-hero clocked-in";
+        }
+        if (statusText) {
+            statusText.textContent = "Currently Clocked In";
+        }
+        if (activeShiftNotice) {
+            activeShiftNotice.style.display = "block";
+        }
+    } else {
+        // State: Clocked Out -> Next action is Clock In
+        clockBtn.className = "clock-action-btn btn-clock-in";
+        clockBtn.innerHTML = '<i class="bi bi-play-fill"></i> <span id="clockBtnLabel">Clock In</span>';
+        
+        if (statusBadge) {
+            statusBadge.className = "status-badge-hero clocked-out";
+        }
+        if (statusText) {
+            statusText.textContent = "Currently Clocked Out";
+        }
+        if (activeShiftNotice) {
+            activeShiftNotice.style.display = "none";
+        }
+    }
+}
+
+/**
+ * Fetch and render attendance records, summaries, progress bars, and flags
+ */
+async function loadRecords() {
+    if (!clockBtn) return;
+    const userId = clockBtn.getAttribute('data-user-id');
+    const month = monthFilter ? monthFilter.value : '';
+
+    try {
         const response = await fetch(
             `/api/gia-data?user_id=${encodeURIComponent(userId)}&month=${encodeURIComponent(month)}`
         );
@@ -72,188 +146,191 @@ async function loadRecords() {
         }
 
         const data = await response.json();
-        const records = data.records;
-        const summary = data.summary;
-        const tbody = document.getElementById('activityTableBody');
-        tbody.innerHTML = '';
+        const records = data.records || [];
+        const summary = data.summary || {};
 
+        // Update Total Hours & Target
         const totalRendered = parseFloat(summary.total_hours || 0);
-        const targetHours = parseFloat(summary.target_hours || 60);
-
-        // Save the base hours completed today (excluding the active running shift)
-        baseTodayHours = parseFloat(summary.today_hours) || 0;
-        const activeDays = parseInt(summary.active_days || 0);
+        const targetHours = parseFloat(summary.target_hours || 100);
         const remainingHours = Math.max(0, targetHours - totalRendered);
+        const activeDays = parseInt(summary.active_days || 0, 10);
+        baseTodayHours = parseFloat(summary.today_hours) || 0;
 
-        document.getElementById('summaryTotalHours').innerText = totalRendered.toFixed(2);
-        const targetEl = document.getElementById('targetHours');
-        if (targetEl) targetEl.innerText = targetHours;
-        document.getElementById('summaryRemaining').innerText = remainingHours.toFixed(2);
-        document.getElementById('summaryActiveDays').innerText = activeDays;
+        const summaryTotalEl = document.getElementById('summaryTotalHours');
+        const targetHoursLabel = document.getElementById('targetHoursLabel');
+        const hoursProgressBar = document.getElementById('hoursProgressBar');
+        const targetPercentageLabel = document.getElementById('targetPercentageLabel');
+        const summaryRemainingEl = document.getElementById('summaryRemaining');
+        const summaryActiveDaysEl = document.getElementById('summaryActiveDays');
+        const recordsCountBadge = document.getElementById('recordsCountBadge');
+        const trendMonthBadge = document.getElementById('trendMonthBadge');
 
-        // Reset active clock in time
+        if (summaryTotalEl) summaryTotalEl.textContent = totalRendered.toFixed(2);
+        if (targetHoursLabel) targetHoursLabel.textContent = targetHours.toFixed(0);
+        if (summaryRemainingEl) summaryRemainingEl.textContent = remainingHours.toFixed(2);
+        if (summaryActiveDaysEl) summaryActiveDaysEl.textContent = activeDays;
+
+        if (recordsCountBadge) {
+            recordsCountBadge.textContent = `${records.length} Record${records.length === 1 ? '' : 's'}`;
+        }
+
+        // Calculate progress percentage
+        const progressPct = targetHours > 0 ? Math.min(100, (totalRendered / targetHours) * 100) : 0;
+        if (hoursProgressBar) {
+            hoursProgressBar.style.width = `${progressPct.toFixed(1)}%`;
+            if (progressPct >= 100) {
+                hoursProgressBar.style.backgroundColor = '#059669';
+            } else {
+                hoursProgressBar.style.backgroundColor = '';
+            }
+        }
+        if (targetPercentageLabel) {
+            targetPercentageLabel.textContent = `${progressPct.toFixed(1)}% of 100%`;
+        }
+
+        // Attendance Inconsistencies / Flags Summary
+        const flagsSummaryText = document.getElementById('flagsSummaryText');
+        if (flagsSummaryText) {
+            const flags = summary.flags || {};
+            const totalFlags = (flags.late || 0) + (flags.early_out || 0) + (flags.overtime || 0);
+            if (totalFlags > 0) {
+                let parts = [];
+                if (flags.late) parts.push(`${flags.late} late`);
+                if (flags.early_out) parts.push(`${flags.early_out} early`);
+                if (flags.overtime) parts.push(`${flags.overtime} OT`);
+                flagsSummaryText.innerHTML = `<span class="text-warning-emphasis fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>${totalFlags} flag(s) (${parts.join(', ')})</span>`;
+            } else {
+                flagsSummaryText.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>No flags recorded</span>`;
+            }
+        }
+
+        // Update Trend Month Badge
+        if (trendMonthBadge && month) {
+            const [y, m] = month.split('-');
+            const d = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
+            trendMonthBadge.textContent = d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+        }
+
+        // Check for active running shift in records
         activeClockInTime = null;
-
-        if (records && records.length > 0) {
-            // Check if the most recent record is an active shift (has clock_in but no clock_out)
+        if (records.length > 0) {
             const latest = records[0];
             if (latest.clock_in && (!latest.clock_out || latest.clock_out === '-')) {
-                activeClockInTime = latest.clock_in; // e.g., "14:30:00"
+                activeClockInTime = latest.clock_in;
+                if (shiftStartTimeEl) shiftStartTimeEl.textContent = latest.clock_in.toUpperCase();
             }
-
-            records.forEach(record => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-              <td class="text-center">${record.date || '-'}</td>
-              <td class="text-center">${record.clock_in || '-'}</td>
-              <td class="text-center">${record.clock_out || '-'}</td>
-              <td class="text-center">${record.total_hours || '-'}</td>
-            `;
-                tbody.appendChild(tr);
-            });
-        } else {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No records found</td></tr>`;
         }
+
+        // Render Table & Trend Chart
+        renderActivityTable(records);
+        renderTrendChart(summary.daily_trend);
 
     } catch (err) {
         console.error('Error loading records:', err);
-        document.getElementById("errorTitle").textContent = "Error Loading Records";
-        document.getElementById("errorMessage").textContent = "Could not fetch data. Please try again.";
-        errorModal.show();
-    }
-}
-
-// --- NEW FUNCTION: Live Progress Tracker ---
-function manageLiveProgress() {
-    if (liveProgressInterval) clearInterval(liveProgressInterval);
-
-    const summaryTodayEl = document.getElementById('summaryToday');
-
-    const updateProgress = () => {
-        if (isClockedIn && activeClockInTime) {
-            // Parse the clock-in time string (assumes 24h format like "14:30:00")
-            const now = new Date();
-            const [hours, minutes, seconds] = activeClockInTime.split(':').map(Number);
-
-            const clockInDate = new Date();
-            clockInDate.setHours(hours, minutes, seconds || 0, 0);
-
-            let diffMs = now - clockInDate;
-            if (diffMs < 0) diffMs = 0; // Sanity check for edge cases
-
-            // Convert milliseconds to decimal hours
-            const liveSessionHours = diffMs / (1000 * 60 * 60);
-            const totalLive = baseTodayHours + liveSessionHours;
-
-            summaryTodayEl.innerText = totalLive.toFixed(2);
-        } else {
-            // If not clocked in, just show the static base hours from the database
-            summaryTodayEl.innerText = baseTodayHours.toFixed(2);
-        }
-    };
-
-    updateProgress(); // Run immediately
-    liveProgressInterval = setInterval(updateProgress, 10000); // Update the visual every 10 seconds
-}
-
-clockBtn.addEventListener("click", async () => {
-    clockBtn.disabled = true;
-
-    const now = new Date();
-    const time = now.toLocaleTimeString();
-    const userId = clockBtn.getAttribute('data-user-id');
-
-    const endpoint = isClockedIn && !is_grace
-        ? '/api/clock-out'
-        : '/api/clock-in';
-
-    const actionText = isClockedIn && !is_grace
-        ? 'Clock Out'
-        : 'Clock In';
-
-    try {
-        const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userId)
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-            document.getElementById("successTitle").textContent = `${actionText} Successful!`;
-            successTime.textContent = time;
-            document.getElementById("successMessage").innerHTML =
-                `You ${actionText.toLowerCase()} at <span class="fw-bold">${data.data.time_record}</span>.`;
-            successModal.show();
-
-            await loadRecords();
-            await checkButton();
-            manageLiveProgress(); // Restart/Update the tracker based on new state
-        } else {
-            document.getElementById("errorTitle").textContent = `${actionText} Failed!`;
-            document.getElementById("errorMessage").textContent =
-                data.error || `Unable to record your ${actionText.toLowerCase()}. Please try again.`;
-            errorModal.show();
-        }
-    } catch (err) {
-        console.error("Clock in/out error:", err);
-
         const errorTitle = document.getElementById("errorTitle");
         const errorMessage = document.getElementById("errorMessage");
-
-        errorTitle.textContent = "Network Error";
-        errorMessage.textContent = "Unable to reach the server. Reloading in seconds...";
-
-        errorModal.show();
-
-        let countdown = 6;
-        const interval = setInterval(() => {
-            countdown--;
-            if (countdown > 0) {
-                errorMessage.textContent = `Unable to reach the server. Reloading in ${countdown} second${countdown === 1 ? '' : 's'}...`;
-            } else {
-                clearInterval(interval);
-                window.location.reload();
-            }
-        }, 1000);
-    } finally {
-        clockBtn.disabled = false;
+        if (errorTitle) errorTitle.textContent = "Error Loading Records";
+        if (errorMessage) errorMessage.textContent = "Could not fetch data. Please try again.";
+        if (errorModal) errorModal.show();
     }
-});
-
-monthFilter.addEventListener("change", () => {
-    loadRecords();
-});
-
-function showPage() {
-    const main = document.querySelector('.main-container');
-    main.style.display = 'block';
-    main.classList.add('visible');
 }
 
-const betaPopupCheck = async () => {
-    const isFirstVisit = localStorage.getItem('betaNoticeShown') !== 'true';
+/**
+ * Render Attendance Activity Table
+ */
+function renderActivityTable(records) {
+    const tbody = document.getElementById('activityTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
 
-    if (isFirstVisit) {
-        const betaModal = new bootstrap.Modal(document.getElementById('betaNoticeModal'));
-        betaModal.show();
-
-        localStorage.setItem('betaNoticeShown', 'true');
+    if (!records || records.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox me-2"></i>No attendance logs found for this month.</td></tr>`;
+        return;
     }
-};
 
-// --- NEW FUNCTION: Live Progress Tracker ---
+    records.forEach(record => {
+        const tr = document.createElement('tr');
+        const isCompleted = Boolean(record.clock_in && record.clock_out && record.clock_out !== '-');
+        const isOnDuty = Boolean(record.clock_in && (!record.clock_out || record.clock_out === '-'));
+
+        let statusBadge = '<span class="badge-status incomplete"><i class="bi bi-dash-circle"></i> Incomplete</span>';
+        if (isCompleted) {
+            statusBadge = '<span class="badge-status completed"><i class="bi bi-check-circle-fill"></i> Completed</span>';
+        } else if (isOnDuty) {
+            statusBadge = '<span class="badge-status active"><i class="bi bi-broadcast"></i> On Duty</span>';
+        }
+
+        tr.innerHTML = `
+            <td class="text-center font-mono fw-medium">${record.date || '-'}</td>
+            <td class="text-center font-mono">${record.clock_in ? record.clock_in.toUpperCase() : '-'}</td>
+            <td class="text-center font-mono">${record.clock_out ? record.clock_out.toUpperCase() : '-'}</td>
+            <td class="text-center">${statusBadge}</td>
+            <td class="text-center font-mono fw-bold">${parseFloat(record.total_hours || 0).toFixed(2)} hrs</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+/**
+ * Render Daily Duty Hours Trend Bar Chart
+ */
+function renderTrendChart(dailyTrend) {
+    const container = document.getElementById('trendBarsContainer');
+    const peakEl = document.getElementById('trendPeakHours');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!dailyTrend || dailyTrend.length === 0) {
+        container.innerHTML = '<div class="w-100 text-center text-muted py-4">No daily duty activity recorded this month.</div>';
+        if (peakEl) peakEl.textContent = '0.00';
+        return;
+    }
+
+    const todayDate = new Date().getDate();
+    const currentMonthStr = new Date().toISOString().slice(0, 7);
+    const selectedMonth = monthFilter ? monthFilter.value : '';
+    const isCurrentMonth = selectedMonth === currentMonthStr;
+
+    const maxVal = Math.max(...dailyTrend.map(d => d.hours || 0), 4.0);
+    const actualPeak = Math.max(...dailyTrend.map(d => d.hours || 0), 0);
+    if (peakEl) peakEl.textContent = actualPeak.toFixed(2);
+
+    dailyTrend.forEach(item => {
+        const col = document.createElement('div');
+        col.className = 'trend-bar-col';
+
+        const hours = parseFloat(item.hours) || 0;
+        const heightPercent = Math.min(100, Math.round((hours / maxVal) * 100));
+        const isToday = isCurrentMonth && item.day === todayDate;
+
+        let stemClass = 'trend-bar-stem';
+        if (hours > 0) {
+            stemClass += isToday ? ' is-today' : ' has-hours';
+        } else {
+            stemClass += ' empty';
+        }
+
+        col.innerHTML = `
+            <div class="trend-bar-val">${hours > 0 ? hours.toFixed(1) : ''}</div>
+            <div class="${stemClass}" 
+                 style="height: ${Math.max(hours > 0 ? 12 : 4, heightPercent)}%;" 
+                 title="Day ${item.day}: ${hours.toFixed(2)} hrs ${isToday ? '(Today)' : ''}"></div>
+            <div class="trend-bar-label ${isToday ? 'fw-bold text-primary' : ''}">${item.day}</div>
+        `;
+        container.appendChild(col);
+    });
+}
+
+/**
+ * Live Progress Tracker: Updates "Today's Progress" and "Current Active Session" dynamically
+ */
 function manageLiveProgress() {
     if (liveProgressInterval) clearInterval(liveProgressInterval);
 
     const summaryTodayEl = document.getElementById('summaryToday');
 
-    // Helper to safely parse both "14:30" and "02:30 PM" formats
     const parseTimeStr = (timeStr) => {
         if (!timeStr) return null;
-
-        // Regex to extract hours, minutes, seconds, and AM/PM
         const match = String(timeStr).match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
         if (!match) return null;
 
@@ -262,7 +339,6 @@ function manageLiveProgress() {
         const seconds = match[3] ? parseInt(match[3], 10) : 0;
         const ampm = match[4] ? match[4].toUpperCase() : null;
 
-        // Convert 12-hour to 24-hour format if AM/PM is present
         if (ampm === 'PM' && hours < 12) hours += 12;
         if (ampm === 'AM' && hours === 12) hours = 0;
 
@@ -272,7 +348,6 @@ function manageLiveProgress() {
     };
 
     const updateProgress = () => {
-        // Ensure baseTodayHours is a safe number
         const safeBaseHours = parseFloat(baseTodayHours) || 0;
 
         if (isClockedIn && activeClockInTime && activeClockInTime !== '-') {
@@ -281,127 +356,182 @@ function manageLiveProgress() {
 
             if (clockInDate) {
                 let diffMs = now - clockInDate;
-                if (diffMs < 0) diffMs = 0; // Prevent negative time if clock is weird
+                if (diffMs < 0) diffMs = 0;
 
-                // Convert milliseconds to decimal hours
                 const liveSessionHours = diffMs / (1000 * 60 * 60);
                 const totalLive = safeBaseHours + liveSessionHours;
 
-                summaryTodayEl.innerText = totalLive.toFixed(2);
+                if (summaryTodayEl) summaryTodayEl.textContent = totalLive.toFixed(2);
+
+                if (activeShiftDurationEl) {
+                    const elapsedMins = Math.floor(diffMs / 60000);
+                    const elapsedHours = Math.floor(elapsedMins / 60);
+                    const remMins = elapsedMins % 60;
+                    activeShiftDurationEl.textContent = elapsedHours > 0 ? `${elapsedHours}h ${remMins}m` : `${remMins}m`;
+                }
                 return;
             }
         }
 
-        // If not clocked in (or time parsing fails), fallback to static hours
-        summaryTodayEl.innerText = safeBaseHours.toFixed(2);
+        if (summaryTodayEl) summaryTodayEl.textContent = safeBaseHours.toFixed(2);
     };
 
-    updateProgress(); // Run immediately
-    liveProgressInterval = setInterval(updateProgress, 10000); // Update every 10 seconds
+    updateProgress();
+    liveProgressInterval = setInterval(updateProgress, 10000); // refresh every 10 seconds
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+/**
+ * Clock In / Clock Out Action Handler
+ */
+if (clockBtn) {
+    clockBtn.addEventListener("click", async () => {
+        clockBtn.disabled = true;
+
+        const now = new Date();
+        const timeFormatted = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const userId = clockBtn.getAttribute('data-user-id');
+
+        const endpoint = isClockedIn && !isGrace ? '/api/clock-out' : '/api/clock-in';
+        const actionText = isClockedIn && !isGrace ? 'Clock Out' : 'Clock In';
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userId)
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                const successTitle = document.getElementById("successTitle");
+                const successMessage = document.getElementById("successMessage");
+                if (successTitle) successTitle.textContent = `${actionText} Successful!`;
+                if (successMessage) {
+                    const recordTime = data.data && data.data.time_record ? data.data.time_record : timeFormatted;
+                    successMessage.innerHTML = `Your duty time has been recorded at <strong class="text-primary font-mono">${recordTime}</strong>.`;
+                }
+                if (successModal) successModal.show();
+
+                await loadRecords();
+                await checkButton();
+                manageLiveProgress();
+            } else {
+                const errorTitle = document.getElementById("errorTitle");
+                const errorMessage = document.getElementById("errorMessage");
+                if (errorTitle) errorTitle.textContent = `${actionText} Failed`;
+                if (errorMessage) errorMessage.textContent = data.error || `Unable to record ${actionText.toLowerCase()}. Please check with an administrator.`;
+                if (errorModal) errorModal.show();
+            }
+        } catch (err) {
+            console.error("Clock In/Out error:", err);
+            const errorTitle = document.getElementById("errorTitle");
+            const errorMessage = document.getElementById("errorMessage");
+            if (errorTitle) errorTitle.textContent = "Network Error";
+            if (errorMessage) errorMessage.textContent = "Unable to reach server. Please try again.";
+            if (errorModal) errorModal.show();
+        } finally {
+            clockBtn.disabled = false;
+        }
+    });
+}
+
+/**
+ * Schedule Modal Handler
+ */
+function setupScheduleModal() {
     const scheduleModal = document.getElementById('scheduleModal');
-    
-    if (scheduleModal) {
-        scheduleModal.addEventListener('show.bs.modal', async function(event) {
-            // Button that triggered the modal
-            const button = event.relatedTarget;
-            const userId = button.getAttribute('data-user-id');
-            const container = document.getElementById('scheduleListContainer');
-            
-            // Show loading state
-            container.innerHTML = `
-                <div class="text-center text-muted my-3">
-                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                    Loading schedule...
-                </div>
-            `;
+    if (!scheduleModal) return;
 
-            try {
-                const response = await fetch(`/api/get-schedule/${userId}`);
-                const data = await response.json();
+    scheduleModal.addEventListener('show.bs.modal', async (event) => {
+        const button = event.relatedTarget;
+        const userId = button ? button.getAttribute('data-user-id') : (clockBtn ? clockBtn.getAttribute('data-user-id') : '');
+        const container = document.getElementById('scheduleListContainer');
+        if (!container) return;
 
-                // REMOVED: !data.success check because your API returns the object directly
-                if (!data.success) {
-                    throw new Error(data.error || 'Failed to fetch schedule');
-                }
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Loading schedule...
+            </div>
+        `;
 
-                // Check if schedules exist in the returned data
-                if (!data.schedules || data.schedules.length === 0) {
-                    container.innerHTML = `
-                        <div class="alert alert-light text-center border">
-                            No schedule assigned yet.
-                        </div>`;
-                    return;
-                }
+        try {
+            const response = await fetch(`/api/get-schedule/${encodeURIComponent(userId)}`);
+            const data = await response.json();
 
-                let listHtml = '<ul class="list-group list-group-flush border rounded-3">';
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to fetch schedule');
+            }
 
-                const dayOrder = { 
-                    "mw": 1, 
-                    "tth": 2, 
-                    "fri": 3,
-                    "sat": 4 
-                };
-
-                data.schedules.sort((a, b) => {
-                    return (dayOrder[a.day.toLowerCase()] || 99) - (dayOrder[b.day.toLowerCase()] || 99);
-                });
-
-                data.schedules.forEach(sched => {
-                    let timeText = '';
-                    let customBadgeStyle = ''; // We'll use custom colors instead of vivid Bootstrap defaults
-
-                    if (!sched.start_time || !sched.end_time) {
-                        timeText = 'Not Set';
-                        // Subtle Gray
-                        customBadgeStyle = "background-color: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb;";
-                    } else if (sched.is_split_shift) {
-                        timeText = `${formatTime(sched.start_time)} - ${formatTime(sched.end_time)} <br> ${formatTime(sched.split_start_time)} - ${formatTime(sched.split_end_time)}`;
-                        // Subtle Purple/Indigo
-                        customBadgeStyle = "background-color: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe;";
-                    } else {
-                        timeText = `${formatTime(sched.start_time)} - ${formatTime(sched.end_time)}`;
-                        // Subtle Blue
-                        customBadgeStyle = "background-color: #eff6ff; color: #2563eb; border: 1px solid #dbeafe;";
-                    }
-
-                    listHtml += `
-                        <li class="list-group-item d-flex justify-content-between align-items-center py-3">
-                            <div>
-                                <span class="fw-bold d-block text-dark text-uppercase">${sched.day}</span>
-                                <small class="text-muted">${sched.is_split_shift ? 'Split Shift' : (timeText === 'Not Set' ? 'No Schedule' : 'Regular Shift')}</small>
-                            </div>
-                            <span class="badge rounded-pill px-3 py-2 text-end" style="line-height: 1.4; font-weight: 500; ${customBadgeStyle}">
-                                ${timeText}
-                            </span>
-                        </li>
-                    `;
-                });
-
-                listHtml += '</ul>';
-                container.innerHTML = listHtml;
-
-            } catch (error) {
-                console.error("Error loading schedule:", error);
+            if (!data.schedules || data.schedules.length === 0) {
                 container.innerHTML = `
-                    <div class="alert alert-danger text-center">
-                        <i class="fas fa-exclamation-circle me-1"></i>
-                        Error: ${error.message}
+                    <div class="alert alert-light text-center border">
+                        <i class="bi bi-info-circle me-1"></i> No regular shifts assigned yet.
+                    </div>`;
+                return;
+            }
+
+            const dayOrder = { "mw": 1, "tth": 2, "fri": 3, "sat": 4 };
+            data.schedules.sort((a, b) => {
+                return (dayOrder[a.day.toLowerCase()] || 99) - (dayOrder[b.day.toLowerCase()] || 99);
+            });
+
+            let listHtml = '';
+            data.schedules.forEach(sched => {
+                let timeBadge = '';
+                const dayLabel = sched.day.toUpperCase();
+
+                if (!sched.start_time || !sched.end_time) {
+                    timeBadge = `<span class="badge bg-light text-muted border">No Shift Assigned</span>`;
+                } else if (sched.is_split_shift) {
+                    timeBadge = `
+                        <div class="text-end">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-block mb-1">
+                                ${formatTime(sched.start_time)} &ndash; ${formatTime(sched.end_time)}
+                            </span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-block">
+                                ${formatTime(sched.split_start_time)} &ndash; ${formatTime(sched.split_end_time)}
+                            </span>
+                        </div>
+                    `;
+                } else {
+                    timeBadge = `
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                            ${formatTime(sched.start_time)} &ndash; ${formatTime(sched.end_time)}
+                        </span>
+                    `;
+                }
+
+                listHtml += `
+                    <div class="shift-item">
+                        <div>
+                            <span class="fw-bold d-block text-dark">${dayLabel}</span>
+                            <small class="text-muted">${sched.is_split_shift ? 'Split Shift' : (sched.start_time ? 'Regular Shift' : 'Unscheduled')}</small>
+                        </div>
+                        <div>${timeBadge}</div>
                     </div>
                 `;
-            }
-        });
-    }
+            });
 
-    // Helper function to convert 24hr time (HH:MM) to 12hr AM/PM format
+            container.innerHTML = listHtml;
+        } catch (error) {
+            console.error("Error loading schedule:", error);
+            container.innerHTML = `
+                <div class="alert alert-danger text-center">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    ${error.message || 'Error loading schedule'}
+                </div>
+            `;
+        }
+    });
+
     function formatTime(timeStr) {
         if (!timeStr) return '';
         const [hourString, minute] = timeStr.split(':');
         let hour = parseInt(hourString, 10);
         const ampm = hour >= 12 ? 'PM' : 'AM';
-        hour = hour % 12 || 12; // Convert '0' to '12' for midnight
+        hour = hour % 12 || 12;
         return `${hour}:${minute} ${ampm}`;
     }
-});
+}

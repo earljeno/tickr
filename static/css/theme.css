@@ -509,3 +509,63 @@ a.sidebar-menu-button {
   padding: 1rem 1.5rem;
   background-color: var(--bg-canvas);
 }
+
+/* ==========================================================================
+   GLOBAL API LOADING BAR / PROGRESS INDICATOR
+   ========================================================================== */
+#tickrGlobalLoadingBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: transparent;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
+  overflow: hidden;
+}
+
+#tickrGlobalLoadingBar.active {
+  opacity: 1;
+}
+
+#tickrGlobalLoadingBar::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 45%;
+  background: linear-gradient(90deg, var(--color-primary, #1e3a8a) 0%, var(--color-accent, #2563eb) 50%, #60a5fa 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.65);
+  animation: tickrIndeterminateBar 1.25s infinite ease-in-out;
+}
+
+@keyframes tickrIndeterminateBar {
+  0% {
+    left: -45%;
+    width: 30%;
+  }
+  50% {
+    left: 35%;
+    width: 60%;
+  }
+  100% {
+    left: 100%;
+    width: 30%;
+  }
+}
+
+.table-loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--text-muted, #64748b);
+  padding: 2.5rem 1rem;
+  font-size: 0.875rem;
+}

@@ -1,471 +1,600 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+/* ==========================================================================
+   TICKR DESIGN SYSTEM - GIA (STUDENT ASSISTANT) DASHBOARD
+   Typography: Inter & JetBrains Mono
+   Compliance: WCAG 2.1 AA (Contrast, Focus, Minimum 44px Touch Targets)
+   ========================================================================== */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: "Poppins", sans-serif;
-  background-color: #f9fafb;
-  color: #374151;
-  min-height: 100vh;
-}
-
-/* ---------- MAIN LAYOUT ---------- */
+/* Main Kiosk Container */
 .main-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 20px;
+  padding: 24px 16px;
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
 }
 
-/* ---------- PAGE HEADER ---------- */
-.page-header {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px 32px;
-  margin-bottom: 32px;
+.main-container.visible {
+  opacity: 1;
+}
+
+/* Page Navigation / Kiosk Header */
+.gia-navbar {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px 24px;
+  margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
-.page-header h1 {
-  font-size: 24px;
+.brand-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ndmu-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.header-meta h1 {
+  font-size: 1.15rem;
   font-weight: 700;
-  color: #111827;
-  margin-bottom: 4px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  line-height: 1.2;
 }
 
-.page-header p {
-  color: #6b7280;
-  font-size: 14px;
+.header-meta p {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
   margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Primary Action Buttons in Header */
+.schedule-btn {
+  background-color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  color: var(--text-inverse);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease-in-out;
+}
+
+.schedule-btn:hover, .schedule-btn:focus-visible {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: var(--text-inverse);
+  box-shadow: var(--focus-ring-shadow);
 }
 
 .logout-btn {
-  background-color: #f9fafb;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
   font-weight: 500;
   padding: 8px 16px;
-  transition: all 0.2s ease;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
 }
 
-.logout-btn:hover {
-  background-color: #f3f4f6;
-  transform: translateY(-1px);
+.logout-btn:hover, .logout-btn:focus-visible {
+  background-color: var(--bg-subtle);
+  color: var(--status-danger-text);
+  border-color: var(--status-danger-border);
 }
 
-/* ---------- STATS GRID ---------- */
+/* Active Duty Beacon in Hero Section */
+.hero-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 32px 24px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
+}
+
+.status-badge-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+
+.status-badge-hero.clocked-in {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+  border-color: var(--status-success-border);
+}
+
+.status-badge-hero.clocked-out {
+  background-color: var(--bg-subtle);
+  color: var(--text-muted);
+  border-color: var(--border-subtle);
+}
+
+.status-pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.status-badge-hero.clocked-in .status-pulse-dot {
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.2);
+  }
+}
+
+.clock-display {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.date-display {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+/* Big Touch/Click Action Clock In/Out Button */
+.clock-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 700;
+  min-height: 56px;
+  padding: 14px 48px;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 240px;
+}
+
+.clock-action-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.45);
+}
+
+.clock-action-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.clock-action-btn.btn-clock-in {
+  background-color: var(--color-accent);
+  color: var(--text-inverse);
+}
+
+.clock-action-btn.btn-clock-in:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+}
+
+.clock-action-btn.btn-clock-out {
+  background-color: #dc2626;
+  color: var(--text-inverse);
+  box-shadow: 0 4px 14px 0 rgba(220, 38, 38, 0.35);
+}
+
+.clock-action-btn.btn-clock-out:hover:not(:disabled) {
+  background-color: #b91c1c;
+  box-shadow: 0 6px 20px 0 rgba(220, 38, 38, 0.45);
+}
+
+.clock-action-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.live-timer-callout {
+  margin-top: 18px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.live-timer-callout strong {
+  font-family: var(--font-mono);
+  color: var(--status-success-text);
+  font-weight: 600;
+}
+
+/* Metric Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 20px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-card);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+  transition: all 0.15s ease-in-out;
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-strong);
 }
 
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
+.stat-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 20px;
+  font-size: 1.25rem;
+  flex-shrink: 0;
 }
 
-.stat-card h4 {
-  font-size: 15px;
-  color: #6b7280;
+.stat-card.blue .stat-icon-wrapper {
+  background-color: var(--status-info-bg);
+  color: var(--color-accent);
+}
+
+.stat-card.amber .stat-icon-wrapper {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.stat-card.emerald .stat-icon-wrapper {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.stat-card.indigo .stat-icon-wrapper {
+  background-color: #ede9fe;
+  color: #7c3aed;
+}
+
+.stat-info {
+  flex-grow: 1;
+}
+
+.stat-label {
+  font-size: 0.8125rem;
   font-weight: 500;
+  color: var(--text-muted);
   margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.stat-card p {
-  font-size: 20px;
+.stat-value-group {
+  display: flex;
+  align-baseline: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.stat-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.625rem;
   font-weight: 700;
-  color: #111827;
-  margin: 0;
+  color: var(--text-primary);
+  line-height: 1;
 }
 
-/* Color themes */
-.stat-card.blue .stat-icon {
-  background: #dbeafe;
-  color: #2563eb;
+.stat-unit {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
-.stat-card.green .stat-icon {
-  background: #d1fae5;
-  color: #059669;
+.progress-track {
+  height: 6px;
+  background-color: var(--bg-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: 8px;
 }
 
-.stat-card.yellow .stat-icon {
-  background: #fef3c7;
-  color: #d97706;
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
 }
 
-.stat-card.indigo .stat-icon {
-    background-color: #e0cffc;
-    color: #6610f2;
+.stat-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
-/* ---------- CLOCK SECTION ---------- */
-.clock-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 40px 24px;
-  text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  margin-bottom: 32px;
-}
-
-.current-time {
-  font-size: 3rem;
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 8px;
-}
-
-.status-text {
-  color: #6b7280;
-  font-size: 16px;
-  margin-bottom: 28px;
-}
-
-.clock-btn {
-  background-color: #3b82f6;
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 40px;
-  font-size: 16px;
-  transition: background 0.2s, transform 0.2s;
-}
-
-.clock-btn:hover {
-  background-color: #2563eb;
-  transform: translateY(-1px);
-}
-
-/* ---------- CONTENT CARD (TABLE) ---------- */
+/* Content Cards (Trend & History) */
 .content-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 24px;
+  overflow: hidden;
 }
 
 .content-card .card-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
 }
 
 .content-card h2 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .content-card .card-body {
   padding: 20px 24px;
 }
 
-/* ---------- TABLE STYLES ---------- */
-.table th {
+/* Monthly Trend Bar Visualization */
+.trend-scroll-container {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.trend-bars-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 600px;
+  height: 150px;
+}
+
+.trend-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 20px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.trend-bar-val {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.trend-bar-stem {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease, background-color 0.2s ease;
+  min-height: 4px;
+}
+
+.trend-bar-stem.has-hours {
+  background-color: var(--color-accent);
+}
+
+.trend-bar-stem.is-today {
+  background-color: #059669;
+}
+
+.trend-bar-stem.empty {
+  background-color: var(--bg-subtle);
+  border: 1px dashed var(--border-subtle);
+}
+
+.trend-bar-stem:hover {
+  opacity: 0.85;
+}
+
+.trend-bar-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Activity Table Styling */
+.table-custom {
+  margin-bottom: 0;
+}
+
+.table-custom th {
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-size: 13px;
-  color: #6b7280;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background-color: var(--bg-subtle);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.table-custom td {
+  padding: 14px 16px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.table-custom tbody tr:hover td {
+  background-color: var(--bg-hover);
+}
+
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
   font-weight: 600;
-  background: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
 }
 
-.table td {
-  font-size: 14px;
-  color: #111827;
-  border-bottom: 1px solid #f3f4f6;
+.badge-status.completed {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--status-success-border);
 }
 
-/* ---------- STATUS BADGES ---------- */
-.status-badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: capitalize;
-  white-space: nowrap;
+.badge-status.active {
+  background-color: var(--status-info-bg);
+  color: var(--status-info-text);
+  border: 1px solid var(--status-info-border);
 }
 
-.status-badge.on-time {
-  background: #d1fae5;
-  color: #065f46;
+.badge-status.incomplete {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
 }
 
-.status-badge.late {
-  background: #fee2e2;
-  color: #991b1b;
+/* Custom Modal Polish */
+.custom-kiosk-modal {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-modal);
+  padding: 16px;
 }
 
-.status-badge.absent {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-/* ---------- RESPONSIVE ---------- */
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
-
-  .current-time {
-    font-size: 2.2rem;
-  }
-
-  .clock-btn {
-    width: 100%;
-  }
-}
-
-/* ======================================================
-   SUCCESS MODAL STYLES
-   ====================================================== */
-.success-modal {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 24px 20px;
-}
-
-.success-modal .modal-body {
-  padding: 32px 20px;
-}
-
-.success-icon {
-  width: 72px;
-  height: 72px;
+.modal-icon-badge {
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background-color: #d1fae5;
-  color: #059669;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
-  margin: 0 auto;
-  box-shadow: 0 0 0 4px #ecfdf5;
+  font-size: 2rem;
+  margin: 0 auto 16px;
 }
 
-.success-modal h5 {
-  color: #111827;
+.modal-icon-badge.success {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+  box-shadow: 0 0 0 4px #d1fae5;
 }
 
-.success-modal p {
-  color: #6b7280;
-  font-size: 14px;
+.modal-icon-badge.error {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  box-shadow: 0 0 0 4px #fee2e2;
 }
 
-.success-modal .btn {
-  border-radius: 8px;
-  font-weight: 600;
-}
-
-.success-modal img {
-  max-width: 100%;
-  height: auto;
-}
-
-/* ======================================================
-   ERROR MODAL STYLES
-   ====================================================== */
-.error-modal {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 24px 20px;
-}
-
-.error-modal .modal-body {
-  padding: 32px 20px;
-}
-
-.error-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background-color: #fee2e2;
-  color: #dc2626;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  margin: 0 auto;
-  box-shadow: 0 0 0 4px #fef2f2;
-}
-
-.error-modal h5 {
-  color: #111827;
-}
-
-.error-modal p {
-  color: #6b7280;
-  font-size: 14px;
-}
-
-.error-modal .btn {
-  border-radius: 8px;
-  font-weight: 600;
-}
-
-/* ======================================================
-   BETA DEPLOYMENT MODAL STYLES
-   ====================================================== */
-.beta-modal {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 24px 20px;
-}
-
-.beta-modal .modal-body {
-  padding: 32px 20px;
-}
-
-.beta-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background-color: #e0f2fe;
-  color: #0369a1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  margin: 0 auto;
-  box-shadow: 0 0 0 4px #f0f9ff;
-}
-
-.beta-modal h5 {
-  color: #111827;
-}
-
-.beta-modal p {
-  color: #6b7280;
-  font-size: 14px;
-}
-
-.beta-modal .alert {
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.beta-modal .btn {
-  border-radius: 8px;
-  font-weight: 600;
-}
-
-/* Beta Btn */
-
-.beta-btn {
-  border-radius: 8px;
-  background-color: #f59e0b;
-  border: none;
-  color: white;
-  transition: all 0.2s ease;
-}
-
-.beta-btn:hover {
-  background-color: #d97706;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
-}
-
-.beta-btn i {
-  font-size: 14px;
-}
-
-/* ======================================================
-   SCHEDULE BUTTON & MODAL STYLES
-   ====================================================== */
-.schedule-btn {
-  border-radius: 8px;
-  background-color: #8b5cf6; /* Indigo/purple to match stat-card indigo */
-  border: none;
-  color: white;
-  transition: all 0.2s ease;
-}
-
-.schedule-btn:hover {
-  background-color: #7c3aed;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
-  color: white;
-}
-
-.schedule-btn i {
-  font-size: 14px;
-}
-
-.schedule-modal {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 24px 20px;
-}
-
-.schedule-modal .modal-body {
-  padding: 16px 20px; /* Slightly tighter padding for the list */
-}
-
-.schedule-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
+.modal-icon-badge.info {
   background-color: #ede9fe;
-  color: #8b5cf6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  margin: 0 auto;
+  color: #7c3aed;
   box-shadow: 0 0 0 4px #f5f3ff;
 }
 
-.schedule-modal h5 {
-  color: #111827;
+/* Shift Info Callout in Schedule Modal */
+.shift-item {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-surface);
 }
 
-.schedule-modal .btn {
-  border-radius: 8px;
-  font-weight: 600;
+.shift-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+  .gia-navbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .header-actions {
+    justify-content: flex-end;
+  }
+
+  .clock-display {
+    font-size: 2.5rem;
+  }
+
+  .clock-action-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
 }

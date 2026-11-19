@@ -293,6 +293,18 @@ function updateModalWorkloadValidation() {
 // Load & Render Weekly Matrix
 // -----------------------------------------------------------------------------
 async function loadSchedules() {
+    const tbody = document.getElementById('scheduleTableBody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-5 text-muted">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    Loading schedule matrix...
+                </td>
+            </tr>
+        `;
+    }
+
     try {
         const queryString = buildQueryString();
         const res = await fetch(`/api/get-schedules?${queryString}`);
@@ -313,7 +325,6 @@ async function loadSchedules() {
         });
 
         const blocks = ['mw', 'tth', 'fri', 'sat'];
-        const tbody = document.getElementById('scheduleTableBody');
         if (!tbody) return;
         tbody.innerHTML = '';
 
@@ -611,6 +622,10 @@ document.addEventListener('click', e => {
     const userId = editBtn.getAttribute('data-user-id');
     if (!userId) return;
 
+    const originalBtnHTML = editBtn.innerHTML;
+    editBtn.disabled = true;
+    editBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+
     fetch(`/api/get-schedule/${userId}`)
         .then(res => res.json())
         .then(data => {
@@ -661,6 +676,10 @@ document.addEventListener('click', e => {
         .catch(err => {
             console.error('Error fetching schedule:', err);
             showAlert('danger', 'Unable to fetch user schedule.');
+        })
+        .finally(() => {
+            editBtn.disabled = false;
+            editBtn.innerHTML = originalBtnHTML;
         });
 });
 
@@ -669,11 +688,25 @@ function setupScheduleActions() {
     const confirmClearBtn = document.getElementById('confirmClear');
     if (confirmClearBtn) {
         confirmClearBtn.addEventListener('click', async function () {
-            const res = await fetch('/api/purge-schedules', { method: 'POST' });
-            if (res.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('clearConfirmModal')).hide();
-                loadSchedules();
-                showAlert('success', 'All schedules have been cleared.');
+            const originalHTML = confirmClearBtn.innerHTML;
+            confirmClearBtn.disabled = true;
+            confirmClearBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Clearing...';
+
+            try {
+                const res = await fetch('/api/purge-schedules', { method: 'POST' });
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('clearConfirmModal')).hide();
+                    loadSchedules();
+                    showAlert('success', 'All schedules have been cleared.');
+                } else {
+                    showAlert('danger', 'Failed to clear schedules.');
+                }
+            } catch (err) {
+                console.error(err);
+                showAlert('danger', 'Error connecting to server.');
+            } finally {
+                confirmClearBtn.disabled = false;
+                confirmClearBtn.innerHTML = originalHTML;
             }
         });
     }

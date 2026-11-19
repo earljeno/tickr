@@ -10,14 +10,25 @@ function initDailyLogs() {
 function loadLogs() {
     dateFilter = document.getElementById("dateFilter").value
 
+    const tbody = document.getElementById('logsTableBody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-5 text-muted">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    Loading daily attendance records...
+                </td>
+            </tr>
+        `;
+    }
+
     fetch(`/api/get-daily-logs?today=${dateFilter}`)
         .then(res => {
             if (!res.ok) showAlert('error', res.status);
             return res.json();
         })
         .then(logs => {
-            const tbody = document.getElementById('logsTableBody');
-            tbody.innerHTML = '';
+            if (tbody) tbody.innerHTML = '';
 
             logs.forEach(record => {
                 const tr = document.createElement("tr");
@@ -79,6 +90,9 @@ tbody.addEventListener('click', e => {
     if (editBtn) {
         const logId = editBtn.getAttribute('data-log-id');
         console.log('Edit clicked:', logId);
+        const originalBtnHTML = editBtn.innerHTML;
+        editBtn.disabled = true;
+        editBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
 
         fetch(`/api/get-user-log/${logId}`)
             .then(res => {
@@ -96,7 +110,11 @@ tbody.addEventListener('click', e => {
             })
             .catch(err => {
                 console.error("Failed to load user:", err.message);
-                alert("User not found or something went wrong.");
+                showAlert('danger', "User log not found or error loading record.");
+            })
+            .finally(() => {
+                editBtn.disabled = false;
+                editBtn.innerHTML = originalBtnHTML;
             });
     }
 

@@ -35,7 +35,17 @@ function loadLogs(page = 1) {
 
     const tbody = document.getElementById('auditLogsTableBody');
     const showingInfo = document.querySelector('.showing-info');
-    showingInfo.textContent = 'Loading audit logs...';
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center py-5 text-muted">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    Loading audit logs...
+                </td>
+            </tr>
+        `;
+    }
+    if (showingInfo) showingInfo.textContent = 'Loading audit logs...';
 
     fetch(`/api/get-logs?${params.toString()}`)
         .then(res => {
