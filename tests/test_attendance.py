@@ -118,3 +118,98 @@ def test_settings_api(admin_client):
     assert updated["unit_head"] == "Dr. Alan Turing"
     assert updated["strict"] is True
     assert updated["early_allowance"] == 10
+
+
+def test_split_shift_attendance_flags(app):
+    from models.models import AttendanceInconsistency, GlobalSettings, Schedule
+    from routes.gia import check_attendance_flags
+
+    with app.app_context():
+        # Setup settings with strict mode enabled
+        settings = GlobalSettings.get_or_create()
+        settings.enable_strict_schedule = True
+        settings.allow_early_out = False
+        settings.allow_overtime = False
+        db.session.commit()
+
+        # Setup split schedule for Monday (mw): 08:00-12:00 and 13:00-17:00
+        monday_date = date(2026, 11, 2)  # Monday
+        assert monday_date.strftime("%A").lower() == "monday"
+
+        sched = Schedule.query.filter_by(user_id="2024001", day="mw").first()
+        sched.start_time = time(8, 0)
+        sched.end_time = time(12, 0)
+        sched.is_split_shift = True
+        sched.split_start_time = time(13, 0)
+        sched.split_end_time = time(17, 0)
+        db.session.commit()
+
+        # Clear any existing inconsistencies for clean test
+        AttendanceInconsistency.query.filter_by(user_id="2024001").delete()
+        db.session.commit()
+
+        # Case 1: Clock in on time for second shift (13:00)
+        # Should NOT be flagged as Late against primary shift (08:00)
+        att_second_on_time = Attendance(
+            user_id="2024001",
+            date=monday_date,
+            clock_in=time(13, 0),
+            clock_out=time(17, 0),
+        )
+        db.session.add(att_second_on_time)
+        db.session.commit()
+
+        check_attendance_flags(att_second_on_time)
+
+        flags = AttendanceInconsistency.query.filter_by(
+            user_id="2024001", date=monday_date
+        ).all()
+        assert len(flags) == 0
+
+        # Case 2: Clock in late for second shift (13:15)
+        # Should be flagged as Late for second shift, referencing second shift's 1:00 PM start
+        att_second_late = Attendance(
+            user_id="2024001",
+            date=monday_date,
+            clock_in=time(13, 15),
+            clock_out=time(17, 0),
+        )
+        db.session.add(att_second_late)
+        db.session.commit()
+
+        check_attendance_flags(att_second_late)
+
+        late_flag = AttendanceInconsistency.query.filter_by(
+            user_id="2024001", date=monday_date, issue_type="Late"
+        ).first()
+        assert late_flag is not None
+        assert "second shift" in late_flag.details
+        assert "01:00 PM" in late_flag.details
+
+        # Case 3: Early out on primary shift (clock-out at 11:30 when end is 12:00)
+        tuesday_date = date(2026, 11, 3)  # Tuesday (tth)
+        tth_sched = Schedule.query.filter_by(user_id="2024001", day="tth").first()
+        tth_sched.start_time = time(8, 0)
+        tth_sched.end_time = time(12, 0)
+        tth_sched.is_split_shift = True
+        tth_sched.split_start_time = time(13, 0)
+        tth_sched.split_end_time = time(17, 0)
+        db.session.commit()
+
+        att_primary_early = Attendance(
+            user_id="2024001",
+            date=tuesday_date,
+            clock_in=time(8, 0),
+            clock_out=time(11, 30),
+        )
+        db.session.add(att_primary_early)
+        db.session.commit()
+
+        check_attendance_flags(att_primary_early)
+
+        early_flag = AttendanceInconsistency.query.filter_by(
+            user_id="2024001", date=tuesday_date, issue_type="Early Out"
+        ).first()
+        assert early_flag is not None
+        assert "primary shift" in early_flag.details
+        assert "12:00 PM" in early_flag.details

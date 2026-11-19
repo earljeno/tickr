@@ -161,6 +161,21 @@ body {
   min-height: 1.25rem;
 }
 
+#toggleAdminPassword {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-color: var(--border-strong, #cbd5e1);
+  color: var(--text-secondary, #334155);
+  background-color: #ffffff;
+}
+
+#toggleAdminPassword:hover,
+#toggleAdminPassword:focus {
+  background-color: var(--bg-subtle, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+  border-color: var(--border-strong, #cbd5e1);
+}
+
 /* Primary Submit Button matching Dashboards */
 .btn-submit-login {
   background-color: var(--color-primary, #1e3a8a);

@@ -91,15 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Password visibility toggle
+    // Password visibility toggle (text-based, no icons)
     togglePasswordBtn?.addEventListener('click', () => {
         if (!adminPass) return;
-        const type = adminPass.getAttribute('type') === 'password' ? 'text' : 'password';
-        adminPass.setAttribute('type', type);
-        const icon = togglePasswordBtn.querySelector('i');
-        if (icon) {
-            icon.className = type === 'password' ? 'bi bi-eye text-muted' : 'bi bi-eye-slash text-primary';
-        }
+        const isPassword = adminPass.getAttribute('type') === 'password';
+        adminPass.setAttribute('type', isPassword ? 'text' : 'password');
+        togglePasswordBtn.textContent = isPassword ? 'Hide' : 'Show';
     });
 
     // Student Assistant (GIA) Form Submission
