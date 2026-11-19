@@ -410,7 +410,9 @@ def get_schedules():
     else:
         users = query.order_by(User.first_name).all()
 
-    schedules = Schedule.query.filter(Schedule.day.in_(["mw", "tth", "fri", "sat"])).all()
+    schedules = Schedule.query.filter(
+        Schedule.day.in_(["mw", "tth", "fri", "sat", "mon", "tue", "wed", "thu"])
+    ).all()
     sched_list = [serialize_schedule(s) for s in schedules]
     users_list = [
         {
@@ -484,11 +486,24 @@ def update_schedule(user_id):
     if not data:
         return jsonify({"success": False, "error": "Invalid or missing JSON data"}), 400
 
+    schedule_mode = data.get("schedule_mode", "block")  # 'block' or 'daily'
     schedules = data.get("schedules", [])
     broken_scheds = data.get("brokenSched", [])
 
+    all_allowed_days = ["mw", "tth", "fri", "sat", "mon", "tue", "wed", "thu"]
+    active_target_days = ["mon", "tue", "wed", "thu", "fri", "sat"] if schedule_mode == "daily" else ["mw", "tth", "fri", "sat"]
+
     try:
-        for day in ["mw", "tth", "fri", "sat"]:
+        # If switching modes or updating, clear or nullify irrelevant days for this user
+        # (e.g. if switching to 'daily', clear old 'mw' and 'tth'; if switching to 'block', clear 'mon', 'tue', 'wed', 'thu')
+        days_to_clear = [d for d in all_allowed_days if d not in active_target_days]
+        if days_to_clear:
+            Schedule.query.filter(
+                Schedule.user_id == user_id,
+                Schedule.day.in_(days_to_clear)
+            ).delete(synchronize_session="fetch")
+
+        for day in active_target_days:
             match = next((s for s in schedules if s.get("day") == day), None)
             broken_match = next((b for b in broken_scheds if b.get("day") == day), None)
 
@@ -1018,6 +1033,14 @@ def status():
     today = now_dt.date()
 
     day_name = now_dt.strftime("%A").lower()
+    day_short_map = {
+        "monday": "mon",
+        "tuesday": "tue",
+        "wednesday": "wed",
+        "thursday": "thu",
+        "friday": "fri",
+        "saturday": "sat",
+    }
     day_map = {
         "monday": "mw",
         "wednesday": "mw",
@@ -1026,6 +1049,7 @@ def status():
         "friday": "fri",
         "saturday": "sat",
     }
+    short_day = day_short_map.get(day_name)
     target_block = day_map.get(day_name)
 
     last_record = (
@@ -1035,7 +1059,9 @@ def status():
     )
 
     user_schedules = []
-    if target_block:
+    if short_day:
+        user_schedules = Schedule.query.filter_by(user_id=user_id, day=short_day).all()
+    if not user_schedules and target_block:
         user_schedules = Schedule.query.filter_by(user_id=user_id, day=target_block).all()
 
     global_settings = GlobalSettings.get()
@@ -1313,6 +1339,14 @@ def clock_in():
         today_date = now_dt.date()
 
         day_name = now_dt.strftime("%A").lower()
+        day_short_map = {
+            "monday": "mon",
+            "tuesday": "tue",
+            "wednesday": "wed",
+            "thursday": "thu",
+            "friday": "fri",
+            "saturday": "sat",
+        }
         day_map = {
             "monday": "mw",
             "wednesday": "mw",
@@ -1321,10 +1355,13 @@ def clock_in():
             "friday": "fri",
             "saturday": "sat",
         }
+        short_day = day_short_map.get(day_name)
         target_block = day_map.get(day_name)
 
         user_schedules = []
-        if target_block:
+        if short_day:
+            user_schedules = Schedule.query.filter_by(user_id=user_id, day=short_day).all()
+        if not user_schedules and target_block:
             user_schedules = Schedule.query.filter_by(user_id=user_id, day=target_block).all()
 
         global_settings = GlobalSettings.get()
@@ -1340,9 +1377,7 @@ def clock_in():
         )
         special_early_in = split_early_in
 
-        if target_block in ["mw", "tth", "fri", "sat"] and any(
-            s.start_time == time(7, 30) for s in user_schedules if s.start_time
-        ):
+        if any(s.start_time == time(7, 30) for s in user_schedules if s.start_time):
             special_early_in += 30
 
         valid_schedule_start = None
@@ -1465,6 +1500,14 @@ def clock_out():
         today = now.date()
 
         day_name = now.strftime("%A").lower()
+        day_short_map = {
+            "monday": "mon",
+            "tuesday": "tue",
+            "wednesday": "wed",
+            "thursday": "thu",
+            "friday": "fri",
+            "saturday": "sat",
+        }
         day_map = {
             "monday": "mw",
             "wednesday": "mw",
@@ -1473,6 +1516,7 @@ def clock_out():
             "friday": "fri",
             "saturday": "sat",
         }
+        short_day = day_short_map.get(day_name)
         target_block = day_map.get(day_name)
 
         last_record = (
@@ -1502,7 +1546,9 @@ def clock_out():
         strict_schedule = bool(global_settings and global_settings.enable_strict_schedule)
 
         user_schedules = []
-        if target_block:
+        if short_day:
+            user_schedules = Schedule.query.filter_by(user_id=user_id, day=short_day).all()
+        if not user_schedules and target_block:
             user_schedules = Schedule.query.filter_by(user_id=user_id, day=target_block).all()
 
         schedule_end = None

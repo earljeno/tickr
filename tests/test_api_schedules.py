@@ -72,3 +72,47 @@ def test_get_schedules_with_filters(admin_client):
     data = res.get_json()
     assert len(data["users"]) == 0
 
+
+def test_update_daily_schedule(admin_client):
+    payload = {
+        "schedule_mode": "daily",
+        "schedules": [
+            {"day": "mon", "start_time": "08:00", "end_time": "12:00"},
+            {"day": "tue", "start_time": "13:00", "end_time": "17:00"},
+            {"day": "wed", "start_time": "08:00", "end_time": "12:00"},
+            {"day": "thu", "start_time": "13:00", "end_time": "17:00"},
+            {"day": "fri", "start_time": "09:00", "end_time": "13:00"},
+            {"day": "sat", "start_time": "09:00", "end_time": "13:00"},
+        ],
+        "brokenSched": [
+            {"day": "mon", "split_start_time": "14:00", "split_end_time": "16:00"}
+        ],
+    }
+    res = admin_client.post("/api/update-schedule/2024001", json=payload)
+    assert res.status_code == 200
+
+    sched_res = admin_client.get("/api/get-schedule/2024001")
+    assert sched_res.status_code == 200
+    data = sched_res.get_json()
+    days = [s["day"] for s in data["schedules"]]
+    assert "mon" in days
+    assert "tue" in days
+    assert "wed" in days
+    assert "thu" in days
+    assert "mw" not in days  # Cleared out old block schedule
+
+    mon_sched = next(s for s in data["schedules"] if s["day"] == "mon")
+    assert mon_sched["start_time"] == "08:00"
+    assert mon_sched["is_split_shift"] is True
+
+    # Check /api/get-schedules matrix returns individual days
+    all_res = admin_client.get("/api/get-schedules")
+    assert all_res.status_code == 200
+    all_data = all_res.get_json()
+    user_mon = next(
+        s for s in all_data["schedules"]
+        if s["user_id"] == "2024001" and s["day"] == "mon"
+    )
+    assert user_mon["start_time"] != ""
+
+

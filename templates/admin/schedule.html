@@ -155,6 +155,25 @@
                 <form id="scheduleEditForm">
                     <input type="hidden" name="userId" id="userId">
 
+                    <!-- Schedule Mode Selector -->
+                    <div class="d-flex justify-content-between align-items-center p-2 mb-3 bg-light border rounded">
+                        <div>
+                            <span class="fw-semibold text-dark small d-block">Schedule Mode</span>
+                            <span class="text-muted small" style="font-size: 0.75rem;">Standard 4-block or individual day schedules</span>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Schedule Mode">
+                            <input type="radio" class="btn-check" name="schedModeRadio" id="modeBlock" value="block" checked autocomplete="off">
+                            <label class="btn btn-outline-primary" for="modeBlock">
+                                <i class="bi bi-grid-fill me-1"></i> Block (MW/TTh)
+                            </label>
+
+                            <input type="radio" class="btn-check" name="schedModeRadio" id="modeDaily" value="daily" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="modeDaily">
+                                <i class="bi bi-calendar3 me-1"></i> Custom Daily (Mon-Sat)
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Office Hours & Auto-complete Helper Banner -->
                     <div class="alert alert-primary border-primary-subtle bg-primary-subtle text-primary-emphasis d-flex align-items-start gap-2 py-2 px-3 mb-3 rounded-2 small">
                         <i class="bi bi-info-circle-fill fs-6 mt-0.5 flex-shrink-0 text-primary"></i>
@@ -164,116 +183,289 @@
                         </div>
                     </div>
 
-                    <!-- Standard Weekly Blocks -->
-                    <h6 class="fw-bold text-primary mb-3 d-flex align-items-center gap-2">
-                        <i class="bi bi-clock"></i> Primary Block Shifts
-                    </h6>
+                    <!-- Container 1: Standard Weekly Blocks (MW, TTh, Fri, Sat) -->
+                    <div id="blockModeContainer">
+                        <h6 class="fw-bold text-primary mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-clock"></i> Primary Block Shifts
+                        </h6>
 
-                    <div class="row g-3 mb-4">
-                        <!-- MW Block -->
-                        <div class="col-md-6">
-                            <div class="p-3 border rounded bg-light">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="form-label fw-bold text-dark mb-0">Monday & Wednesday (MW)</label>
-                                    <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="mw" title="Clear MW" style="font-size: 0.75rem;">Clear</button>
-                                </div>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <small class="text-muted d-block mb-1">Start Time</small>
-                                        <input type="time" class="form-control form-control-sm" id="mwIn" min="07:30" max="20:30">
+                        <div class="row g-3 mb-4">
+                            <!-- MW Block -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Monday & Wednesday (MW)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="mw" title="Clear MW" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="col-6">
-                                        <small class="text-muted d-block mb-1">End Time</small>
-                                        <input type="time" class="form-control form-control-sm" id="mwOut" min="07:30" max="20:30">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="mwIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="mwOut" min="07:30" max="20:30">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
                                     </div>
                                 </div>
-                                <div class="d-flex flex-wrap gap-1 mt-2">
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                            </div>
+
+                            <!-- TTh Block -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Tuesday & Thursday (TTh)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="tth" title="Clear TTh" style="font-size: 0.75rem;">Clear</button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="tthIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="tthOut" min="07:30" max="20:30">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Friday -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Friday (Fri)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="fri" title="Clear Friday" style="font-size: 0.75rem;">Clear</button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="friIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="friOut" min="07:30" max="20:30">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Saturday -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Saturday (Sat)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="sat" title="Clear Saturday" style="font-size: 0.75rem;">Clear</button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="satIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="satOut" min="07:30" max="20:30">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- TTh Block -->
-                        <div class="col-md-6">
-                            <div class="p-3 border rounded bg-light">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="form-label fw-bold text-dark mb-0">Tuesday & Thursday (TTh)</label>
-                                    <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="tth" title="Clear TTh" style="font-size: 0.75rem;">Clear</button>
-                                </div>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <small class="text-muted d-block mb-1">Start Time</small>
-                                        <input type="time" class="form-control form-control-sm" id="tthIn" min="07:30" max="20:30">
+                    <!-- Container 2: Custom Daily Schedules (Monday through Saturday) -->
+                    <div id="dailyModeContainer" class="d-none">
+                        <h6 class="fw-bold text-primary mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-calendar-week"></i> Daily Individual Shifts (Mon - Sat)
+                        </h6>
+
+                        <div class="row g-3 mb-4">
+                            <!-- Monday -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Monday (Mon)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="mon" title="Clear Monday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="col-6">
-                                        <small class="text-muted d-block mb-1">End Time</small>
-                                        <input type="time" class="form-control form-control-sm" id="tthOut" min="07:30" max="20:30">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="monIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="monOut" min="07:30" max="20:30">
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="d-flex flex-wrap gap-1 mt-2">
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mon" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mon" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mon" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mon" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mon" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Friday -->
-                        <div class="col-md-6">
-                            <div class="p-3 border rounded bg-light">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="form-label fw-bold text-dark mb-0">Friday (Fri)</label>
-                                    <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="fri" title="Clear Friday" style="font-size: 0.75rem;">Clear</button>
-                                </div>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <small class="text-muted d-block mb-1">Start Time</small>
-                                        <input type="time" class="form-control form-control-sm" id="friIn" min="07:30" max="20:30">
+                            <!-- Tuesday -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Tuesday (Tue)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="tue" title="Clear Tuesday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="col-6">
-                                        <small class="text-muted d-block mb-1">End Time</small>
-                                        <input type="time" class="form-control form-control-sm" id="friOut" min="07:30" max="20:30">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="tueIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="tueOut" min="07:30" max="20:30">
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="d-flex flex-wrap gap-1 mt-2">
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tue" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tue" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tue" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tue" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tue" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Saturday -->
-                        <div class="col-md-6">
-                            <div class="p-3 border rounded bg-light">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="form-label fw-bold text-dark mb-0">Saturday (Sat)</label>
-                                    <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="sat" title="Clear Saturday" style="font-size: 0.75rem;">Clear</button>
-                                </div>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <small class="text-muted d-block mb-1">Start Time</small>
-                                        <input type="time" class="form-control form-control-sm" id="satIn" min="07:30" max="20:30">
+                            <!-- Wednesday -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Wednesday (Wed)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="wed" title="Clear Wednesday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="col-6">
-                                        <small class="text-muted d-block mb-1">End Time</small>
-                                        <input type="time" class="form-control form-control-sm" id="satOut" min="07:30" max="20:30">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="wedIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="wedOut" min="07:30" max="20:30">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="wed" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="wed" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="wed" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="wed" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="wed" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
                                     </div>
                                 </div>
-                                <div class="d-flex flex-wrap gap-1 mt-2">
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                            </div>
+
+                            <!-- Thursday -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Thursday (Thu)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="thu" title="Clear Thursday" style="font-size: 0.75rem;">Clear</button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="thuIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="thuOut" min="07:30" max="20:30">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="thu" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="thu" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="thu" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="thu" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="thu" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Friday (Daily) -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Friday (Fri)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="dailyFri" title="Clear Friday" style="font-size: 0.75rem;">Clear</button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="dailyFriIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="dailyFriOut" min="07:30" max="20:30">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailyFri" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailyFri" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailyFri" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailyFri" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailyFri" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Saturday (Daily) -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold text-dark mb-0">Saturday (Sat)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="dailySat" title="Clear Saturday" style="font-size: 0.75rem;">Clear</button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">Start Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="dailySatIn" min="07:30" max="20:30">
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1">End Time</small>
+                                            <input type="time" class="form-control form-control-sm" id="dailySatOut" min="07:30" max="20:30">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailySat" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailySat" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailySat" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailySat" data-start="13:00" data-end="17:00" style="font-size: 0.7rem;">1:00-5:00</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailySat" data-start="16:30" data-end="20:30" style="font-size: 0.7rem;">4:30-8:30</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -304,7 +496,8 @@
                                 </span>
                             </div>
 
-                            <div class="row g-2 mb-2 text-center font-mono">
+                            <!-- Breakdown Boxes (Switched dynamically or universal) -->
+                            <div class="row g-2 mb-2 text-center font-mono" id="valBreakdownBlock">
                                 <div class="col-3">
                                     <div class="p-2 bg-white rounded border" id="valBoxMw">
                                         <div class="text-muted small">MW (2d)</div>
@@ -327,6 +520,45 @@
                                     <div class="p-2 bg-white rounded border" id="valBoxSat">
                                         <div class="text-muted small">Sat (1d)</div>
                                         <div class="fw-bold" id="valSatText"><span id="valSatDay">0.0</span>h/d</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2 text-center font-mono d-none" id="valBreakdownDaily">
+                                <div class="col-2">
+                                    <div class="p-1.5 bg-white rounded border" id="valBoxMon">
+                                        <div class="text-muted small">Mon</div>
+                                        <div class="fw-bold small" id="valMonText"><span id="valMonDay">0.0</span>h</div>
+                                    </div>
+                                </div>
+                                <div class="col-2">
+                                    <div class="p-1.5 bg-white rounded border" id="valBoxTue">
+                                        <div class="text-muted small">Tue</div>
+                                        <div class="fw-bold small" id="valTueText"><span id="valTueDay">0.0</span>h</div>
+                                    </div>
+                                </div>
+                                <div class="col-2">
+                                    <div class="p-1.5 bg-white rounded border" id="valBoxWed">
+                                        <div class="text-muted small">Wed</div>
+                                        <div class="fw-bold small" id="valWedText"><span id="valWedDay">0.0</span>h</div>
+                                    </div>
+                                </div>
+                                <div class="col-2">
+                                    <div class="p-1.5 bg-white rounded border" id="valBoxThu">
+                                        <div class="text-muted small">Thu</div>
+                                        <div class="fw-bold small" id="valThuText"><span id="valThuDay">0.0</span>h</div>
+                                    </div>
+                                </div>
+                                <div class="col-2">
+                                    <div class="p-1.5 bg-white rounded border" id="valBoxDailyFri">
+                                        <div class="text-muted small">Fri</div>
+                                        <div class="fw-bold small" id="valDailyFriText"><span id="valDailyFriDay">0.0</span>h</div>
+                                    </div>
+                                </div>
+                                <div class="col-2">
+                                    <div class="p-1.5 bg-white rounded border" id="valBoxDailySat">
+                                        <div class="text-muted small">Sat</div>
+                                        <div class="fw-bold small" id="valDailySatText"><span id="valDailySatDay">0.0</span>h</div>
                                     </div>
                                 </div>
                             </div>
@@ -363,6 +595,10 @@
                 <select class="form-select broken-day">
                     <option value="mw">MW (Mon & Wed)</option>
                     <option value="tth">TTh (Tue & Thu)</option>
+                    <option value="mon">Monday</option>
+                    <option value="tue">Tuesday</option>
+                    <option value="wed">Wednesday</option>
+                    <option value="thu">Thursday</option>
                     <option value="fri">Friday</option>
                     <option value="sat">Saturday</option>
                 </select>

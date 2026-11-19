@@ -168,33 +168,14 @@ function calculateShiftHours(startStr, endStr) {
 }
 
 function updateModalWorkloadValidation() {
-    const blocks = ['mw', 'tth', 'fri', 'sat'];
-    const dayTotals = { mw: 0, tth: 0, fri: 0, sat: 0 };
-
-    // 1. Primary shifts
-    blocks.forEach(block => {
-        const startVal = document.getElementById(`${block}In`)?.value;
-        const endVal = document.getElementById(`${block}Out`)?.value;
-        dayTotals[block] += calculateShiftHours(startVal, endVal);
-    });
-
-    // 2. Split / Broken shifts
-    document.querySelectorAll('#brokenScheduleContainer .broken-schedule-item').forEach(item => {
-        const day = item.querySelector('.broken-day')?.value;
-        const inputs = item.querySelectorAll('input[type="time"]');
-        if (day && dayTotals[day] !== undefined && inputs[0]?.value && inputs[1]?.value) {
-            dayTotals[day] += calculateShiftHours(inputs[0].value, inputs[1].value);
-        }
-    });
-
-    // 3. Compute weekly total: MW (2 days) + TTh (2 days) + Fri (1 day) + Sat (1 day)
-    const weeklyTotal = (dayTotals.mw * 2) + (dayTotals.tth * 2) + (dayTotals.fri * 1) + (dayTotals.sat * 1);
-
+    const isDaily = document.getElementById('modeDaily')?.checked;
     const targetDaily = 4.0;
     const targetWeekly = 24.0;
 
-    // 4. Update Day Breakdown Indicators
-    const updateBox = (dayId, boxId, hours) => {
+    let weeklyTotal = 0;
+    const dayDeviations = [];
+
+    const updateBox = (dayId, boxId, hours, label) => {
         const textEl = document.getElementById(`val${dayId}Day`);
         const boxEl = document.getElementById(boxId);
         if (textEl) textEl.textContent = hours.toFixed(1);
@@ -208,28 +189,83 @@ function updateModalWorkloadValidation() {
                 boxEl.classList.add('bg-white', 'text-muted');
             }
         }
+        if (Math.abs(hours - targetDaily) >= 0.05) {
+            dayDeviations.push(`${label}: ${hours.toFixed(1)}h`);
+        }
     };
 
-    updateBox('Mw', 'valBoxMw', dayTotals.mw);
-    updateBox('Tth', 'valBoxTth', dayTotals.tth);
-    updateBox('Fri', 'valBoxFri', dayTotals.fri);
-    updateBox('Sat', 'valBoxSat', dayTotals.sat);
+    if (!isDaily) {
+        // --- Block Mode ---
+        const blocks = ['mw', 'tth', 'fri', 'sat'];
+        const dayTotals = { mw: 0, tth: 0, fri: 0, sat: 0 };
 
-    // 5. Update Weekly Total Badge
+        blocks.forEach(block => {
+            const startVal = document.getElementById(`${block}In`)?.value;
+            const endVal = document.getElementById(`${block}Out`)?.value;
+            dayTotals[block] += calculateShiftHours(startVal, endVal);
+        });
+
+        document.querySelectorAll('#brokenScheduleContainer .broken-schedule-item').forEach(item => {
+            const day = item.querySelector('.broken-day')?.value;
+            const inputs = item.querySelectorAll('input[type="time"]');
+            if (day && dayTotals[day] !== undefined && inputs[0]?.value && inputs[1]?.value) {
+                dayTotals[day] += calculateShiftHours(inputs[0].value, inputs[1].value);
+            }
+        });
+
+        weeklyTotal = (dayTotals.mw * 2) + (dayTotals.tth * 2) + (dayTotals.fri * 1) + (dayTotals.sat * 1);
+
+        updateBox('Mw', 'valBoxMw', dayTotals.mw, 'MW');
+        updateBox('Tth', 'valBoxTth', dayTotals.tth, 'TTh');
+        updateBox('Fri', 'valBoxFri', dayTotals.fri, 'Fri');
+        updateBox('Sat', 'valBoxSat', dayTotals.sat, 'Sat');
+    } else {
+        // --- Daily Mode (Mon-Sat) ---
+        const days = ['mon', 'tue', 'wed', 'thu', 'dailyFri', 'dailySat'];
+        const dayKeyMap = {
+            mon: 'mon',
+            tue: 'tue',
+            wed: 'wed',
+            thu: 'thu',
+            dailyFri: 'fri',
+            dailySat: 'sat'
+        };
+        const dayTotals = { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
+
+        days.forEach(d => {
+            const startVal = document.getElementById(`${d}In`)?.value;
+            const endVal = document.getElementById(`${d}Out`)?.value;
+            const targetKey = dayKeyMap[d];
+            dayTotals[targetKey] += calculateShiftHours(startVal, endVal);
+        });
+
+        document.querySelectorAll('#brokenScheduleContainer .broken-schedule-item').forEach(item => {
+            const day = item.querySelector('.broken-day')?.value;
+            const inputs = item.querySelectorAll('input[type="time"]');
+            if (day && dayTotals[day] !== undefined && inputs[0]?.value && inputs[1]?.value) {
+                dayTotals[day] += calculateShiftHours(inputs[0].value, inputs[1].value);
+            }
+        });
+
+        weeklyTotal = dayTotals.mon + dayTotals.tue + dayTotals.wed + dayTotals.thu + dayTotals.fri + dayTotals.sat;
+
+        updateBox('Mon', 'valBoxMon', dayTotals.mon, 'Mon');
+        updateBox('Tue', 'valBoxTue', dayTotals.tue, 'Tue');
+        updateBox('Wed', 'valBoxWed', dayTotals.wed, 'Wed');
+        updateBox('Thu', 'valBoxThu', dayTotals.thu, 'Thu');
+        updateBox('DailyFri', 'valBoxDailyFri', dayTotals.fri, 'Fri');
+        updateBox('DailySat', 'valBoxDailySat', dayTotals.sat, 'Sat');
+    }
+
+    // Weekly Total Badge
     const totalEl = document.getElementById('valWeeklyTotal');
     const badgeEl = document.getElementById('valWeeklyBadge');
     if (totalEl) totalEl.textContent = weeklyTotal.toFixed(1);
 
+    const isCompliant = (Math.abs(weeklyTotal - targetWeekly) < 0.05 && dayDeviations.length === 0);
+
     if (badgeEl) {
         badgeEl.className = 'badge border font-mono';
-        const isCompliant = (
-            Math.abs(weeklyTotal - targetWeekly) < 0.05 &&
-            Math.abs(dayTotals.mw - targetDaily) < 0.05 &&
-            Math.abs(dayTotals.tth - targetDaily) < 0.05 &&
-            Math.abs(dayTotals.fri - targetDaily) < 0.05 &&
-            Math.abs(dayTotals.sat - targetDaily) < 0.05
-        );
-
         if (isCompliant) {
             badgeEl.classList.add('bg-success-subtle', 'text-success', 'border-success-subtle');
         } else if (weeklyTotal > 0) {
@@ -239,17 +275,9 @@ function updateModalWorkloadValidation() {
         }
     }
 
-    // 6. Advisory Notice (Non-blocking, informs the user without preventing save)
+    // Advisory Notice
     const noticeContainer = document.getElementById('valNoticeContainer');
     if (noticeContainer) {
-        const isCompliant = (
-            Math.abs(weeklyTotal - targetWeekly) < 0.05 &&
-            Math.abs(dayTotals.mw - targetDaily) < 0.05 &&
-            Math.abs(dayTotals.tth - targetDaily) < 0.05 &&
-            Math.abs(dayTotals.fri - targetDaily) < 0.05 &&
-            Math.abs(dayTotals.sat - targetDaily) < 0.05
-        );
-
         if (isCompliant) {
             noticeContainer.innerHTML = `
                 <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-0 small">
@@ -268,12 +296,6 @@ function updateModalWorkloadValidation() {
             const diffText = diff > 0 
                 ? `+${diff.toFixed(1)} hrs over target` 
                 : `${Math.abs(diff).toFixed(1)} hrs under target`;
-
-            const dayDeviations = [];
-            if (Math.abs(dayTotals.mw - targetDaily) >= 0.05) dayDeviations.push(`MW: ${dayTotals.mw.toFixed(1)}h`);
-            if (Math.abs(dayTotals.tth - targetDaily) >= 0.05) dayDeviations.push(`TTh: ${dayTotals.tth.toFixed(1)}h`);
-            if (Math.abs(dayTotals.fri - targetDaily) >= 0.05) dayDeviations.push(`Fri: ${dayTotals.fri.toFixed(1)}h`);
-            if (Math.abs(dayTotals.sat - targetDaily) >= 0.05) dayDeviations.push(`Sat: ${dayTotals.sat.toFixed(1)}h`);
 
             noticeContainer.innerHTML = `
                 <div class="alert alert-warning d-flex align-items-start py-2 px-3 mb-0 small">
@@ -377,6 +399,14 @@ async function loadSchedules() {
                 ? `<div class="text-muted small" style="font-size: 0.75rem;"><i class="bi bi-geo-alt me-1"></i>${u.laboratory}</div>` 
                 : '';
 
+            const userSchedMap = scheduleMap[u.user_id] || {};
+            const isCustomDaily = Boolean(
+                userSchedMap['mon'] || userSchedMap['tue'] || userSchedMap['wed'] || userSchedMap['thu']
+            );
+            const dailyScheduleBadge = isCustomDaily
+                ? '<span class="badge bg-info-subtle text-info border border-info-subtle ms-2" style="font-size: 0.65rem;" title="Individual daily schedule assigned"><i class="bi bi-calendar3 me-1"></i>Daily</span>'
+                : '';
+
             let rowHTML = `
                 <td class="ps-4">
                     <div class="d-flex align-items-center">
@@ -385,6 +415,7 @@ async function loadSchedules() {
                             <div class="user-name d-flex align-items-center">
                                 ${u.first_name} ${u.last_name}
                                 ${statusBadge}
+                                ${dailyScheduleBadge}
                             </div>
                             <div class="user-email text-muted small">${u.user_id}</div>
                             ${labText}
@@ -395,44 +426,95 @@ async function loadSchedules() {
 
             let userWeeklyHours = 0;
 
-            blocks.forEach(block => {
-                const s = scheduleMap[u.user_id]?.[block];
-                const hasPrimary = Boolean(s && s.start_time && s.end_time);
-                const hasSplit = Boolean(s && (s.is_split_shift || (s.split_start_time && s.split_end_time)) && s.split_start_time && s.split_end_time);
+            if (!isCustomDaily) {
+                // Standard block rendering: MW, TTh, Fri, Sat
+                blocks.forEach(block => {
+                    const s = userSchedMap[block];
+                    const hasPrimary = Boolean(s && s.start_time && s.end_time);
+                    const hasSplit = Boolean(s && (s.is_split_shift || (s.split_start_time && s.split_end_time)) && s.split_start_time && s.split_end_time);
 
-                const dailyHours = (s && typeof s.daily_hours === 'number') ? s.daily_hours : 0;
-                const multiplier = (block === 'mw' || block === 'tth') ? 2 : 1;
-                userWeeklyHours += dailyHours * multiplier;
+                    const dailyHours = (s && typeof s.daily_hours === 'number') ? s.daily_hours : 0;
+                    const multiplier = (block === 'mw' || block === 'tth') ? 2 : 1;
+                    userWeeklyHours += dailyHours * multiplier;
 
-                let cellContent = '';
-                if (!hasPrimary && !hasSplit) {
-                    cellContent = '<span class="text-muted small">-</span>';
-                } else {
-                    if (hasPrimary) {
-                        cellContent += `<div class="time-display fw-medium">${s.start_time} - ${s.end_time}</div>`;
+                    let cellContent = '';
+                    if (!hasPrimary && !hasSplit) {
+                        cellContent = '<span class="text-muted small">-</span>';
+                    } else {
+                        if (hasPrimary) {
+                            cellContent += `<div class="time-display fw-medium">${s.start_time} - ${s.end_time}</div>`;
+                        }
+                        if (hasSplit) {
+                            cellContent += `
+                                <div>
+                                    <span class="split-display" title="Split Shift">
+                                        <i class="bi bi-segmented-nav me-1"></i>${s.split_start_time} - ${s.split_end_time}
+                                    </span>
+                                </div>
+                            `;
+                        }
+                        if (dailyHours > 0) {
+                            cellContent += `<div class="text-muted small font-mono mt-1" style="font-size: 0.725rem;">${dailyHours.toFixed(1)}h/day</div>`;
+                        }
                     }
-                    if (hasSplit) {
-                        cellContent += `
-                            <div>
-                                <span class="split-display" title="Split Shift">
-                                    <i class="bi bi-segmented-nav me-1"></i>${s.split_start_time} - ${s.split_end_time}
-                                </span>
+
+                    rowHTML += `
+                        <td>
+                            <div class="schedule-time text-center">
+                                ${cellContent}
                             </div>
-                        `;
+                        </td>
+                    `;
+                });
+            } else {
+                // Custom daily rendering within the 4 columns
+                // 1. Mon & Wed (MW column)
+                const renderSubDay = (label, s) => {
+                    if (!s || (!s.start_time && !s.split_start_time)) {
+                        return `<div class="text-muted small">${label}: Off</div>`;
                     }
-                    if (dailyHours > 0) {
-                        cellContent += `<div class="text-muted small font-mono mt-1" style="font-size: 0.725rem;">${dailyHours.toFixed(1)}h/day</div>`;
+                    let txt = `<span class="fw-semibold text-dark">${label}:</span> ${s.start_time || ''}${s.end_time ? ' - ' + s.end_time : ''}`;
+                    if (s.is_split_shift && s.split_start_time) {
+                        txt += ` <span class="text-primary small" title="Split shift">(+split)</span>`;
                     }
-                }
+                    return `<div class="small">${txt}</div>`;
+                };
+
+                const monS = userSchedMap['mon'];
+                const wedS = userSchedMap['wed'];
+                const tueS = userSchedMap['tue'];
+                const thuS = userSchedMap['thu'];
+                const friS = userSchedMap['fri'];
+                const satS = userSchedMap['sat'];
+
+                userWeeklyHours += (monS?.daily_hours || 0) + (tueS?.daily_hours || 0) + (wedS?.daily_hours || 0) +
+                                   (thuS?.daily_hours || 0) + (friS?.daily_hours || 0) + (satS?.daily_hours || 0);
 
                 rowHTML += `
                     <td>
                         <div class="schedule-time text-center">
-                            ${cellContent}
+                            ${renderSubDay('M', monS)}
+                            ${renderSubDay('W', wedS)}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="schedule-time text-center">
+                            ${renderSubDay('T', tueS)}
+                            ${renderSubDay('Th', thuS)}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="schedule-time text-center">
+                            ${renderSubDay('F', friS)}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="schedule-time text-center">
+                            ${renderSubDay('Sa', satS)}
                         </div>
                     </td>
                 `;
-            });
+            }
 
             // Weekly Total Column
             let weeklyBadge = '';
@@ -528,7 +610,7 @@ function setupModal() {
 
     // Auto-complete End Time with 4 hours when Start Time is input/changed,
     // while keeping End Time fully editable by the user.
-    ['mw', 'tth', 'fri', 'sat'].forEach(block => {
+    ['mw', 'tth', 'fri', 'sat', 'mon', 'tue', 'wed', 'thu', 'dailyFri', 'dailySat'].forEach(block => {
         const inEl = document.getElementById(`${block}In`);
         const outEl = document.getElementById(`${block}Out`);
         if (inEl && outEl) {
@@ -548,6 +630,33 @@ function setupModal() {
         }
     });
 
+    // Schedule Mode Switch Listener (Block vs Custom Daily)
+    const modeBlockRadio = document.getElementById('modeBlock');
+    const modeDailyRadio = document.getElementById('modeDaily');
+    const blockContainer = document.getElementById('blockModeContainer');
+    const dailyContainer = document.getElementById('dailyModeContainer');
+    const valBreakdownBlock = document.getElementById('valBreakdownBlock');
+    const valBreakdownDaily = document.getElementById('valBreakdownDaily');
+
+    const handleModeSwitch = () => {
+        const isDaily = modeDailyRadio && modeDailyRadio.checked;
+        if (isDaily) {
+            blockContainer?.classList.add('d-none');
+            dailyContainer?.classList.remove('d-none');
+            valBreakdownBlock?.classList.add('d-none');
+            valBreakdownDaily?.classList.remove('d-none');
+        } else {
+            dailyContainer?.classList.add('d-none');
+            blockContainer?.classList.remove('d-none');
+            valBreakdownDaily?.classList.add('d-none');
+            valBreakdownBlock?.classList.remove('d-none');
+        }
+        updateModalWorkloadValidation();
+    };
+
+    if (modeBlockRadio) modeBlockRadio.addEventListener('change', handleModeSwitch);
+    if (modeDailyRadio) modeDailyRadio.addEventListener('change', handleModeSwitch);
+
     // Save Action (Advisory: always allows save without constraining user)
     if (saveBtn) {
         saveBtn.addEventListener('click', async function () {
@@ -555,13 +664,32 @@ function setupModal() {
             this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving...';
 
             const userId = document.getElementById('userId').value;
+            const isDaily = modeDailyRadio && modeDailyRadio.checked;
+            const schedule_mode = isDaily ? 'daily' : 'block';
 
-            // Collect Main Blocks
-            const schedules = ['mw', 'tth', 'fri', 'sat'].map(block => ({
-                day: block,
-                start_time: document.getElementById(`${block}In`).value || null,
-                end_time: document.getElementById(`${block}Out`).value || null
-            }));
+            // Collect Shifts based on active mode
+            let schedules = [];
+            if (!isDaily) {
+                schedules = ['mw', 'tth', 'fri', 'sat'].map(block => ({
+                    day: block,
+                    start_time: document.getElementById(`${block}In`)?.value || null,
+                    end_time: document.getElementById(`${block}Out`)?.value || null
+                }));
+            } else {
+                const dailyInputs = [
+                    { day: 'mon', id: 'mon' },
+                    { day: 'tue', id: 'tue' },
+                    { day: 'wed', id: 'wed' },
+                    { day: 'thu', id: 'thu' },
+                    { day: 'fri', id: 'dailyFri' },
+                    { day: 'sat', id: 'dailySat' }
+                ];
+                schedules = dailyInputs.map(item => ({
+                    day: item.day,
+                    start_time: document.getElementById(`${item.id}In`)?.value || null,
+                    end_time: document.getElementById(`${item.id}Out`)?.value || null
+                }));
+            }
 
             // Collect Broken Shifts
             const brokenSched = [];
@@ -581,7 +709,7 @@ function setupModal() {
                 const res = await fetch(`/api/update-schedule/${userId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ schedules, brokenSched })
+                    body: JSON.stringify({ schedule_mode, schedules, brokenSched })
                 });
 
                 if (res.ok) {
@@ -673,23 +801,52 @@ document.addEventListener('click', e => {
             const userIdInput = document.getElementById('userId');
             if (userIdInput) userIdInput.value = user.user_id;
 
+            // Detect whether user has custom daily schedules
+            const hasDaily = scheds.some(s => ['mon', 'tue', 'wed', 'thu'].includes(s.day.toLowerCase()) && (s.start_time || s.split_start_time));
+            const modeBlockRadio = document.getElementById('modeBlock');
+            const modeDailyRadio = document.getElementById('modeDaily');
+            const blockContainer = document.getElementById('blockModeContainer');
+            const dailyContainer = document.getElementById('dailyModeContainer');
+            const valBreakdownBlock = document.getElementById('valBreakdownBlock');
+            const valBreakdownDaily = document.getElementById('valBreakdownDaily');
+
+            if (hasDaily) {
+                if (modeDailyRadio) modeDailyRadio.checked = true;
+                blockContainer?.classList.add('d-none');
+                dailyContainer?.classList.remove('d-none');
+                valBreakdownBlock?.classList.add('d-none');
+                valBreakdownDaily?.classList.remove('d-none');
+            } else {
+                if (modeBlockRadio) modeBlockRadio.checked = true;
+                dailyContainer?.classList.add('d-none');
+                blockContainer?.classList.remove('d-none');
+                valBreakdownDaily?.classList.add('d-none');
+                valBreakdownBlock?.classList.remove('d-none');
+            }
+
             // Reset all inputs first without triggering change events
-            ['mw', 'tth', 'fri', 'sat'].forEach(block => {
-                const inEl = document.getElementById(`${block}In`);
-                const outEl = document.getElementById(`${block}Out`);
+            ['mw', 'tth', 'fri', 'sat', 'mon', 'tue', 'wed', 'thu', 'dailyFri', 'dailySat'].forEach(id => {
+                const inEl = document.getElementById(`${id}In`);
+                const outEl = document.getElementById(`${id}Out`);
                 if (inEl) inEl.value = '';
                 if (outEl) outEl.value = '';
             });
 
             // Populate Main Inputs with existing values from database
             scheds.forEach(s => {
-                const block = s.day;
-                const inEl = document.getElementById(`${block}In`);
-                const outEl = document.getElementById(`${block}Out`);
-                if (inEl && outEl) {
-                    inEl.value = s.start_time || '';
-                    outEl.value = s.end_time || '';
-                }
+                const dayKey = s.day.toLowerCase();
+                const inputIds = [dayKey];
+                if (dayKey === 'fri') inputIds.push('dailyFri');
+                if (dayKey === 'sat') inputIds.push('dailySat');
+
+                inputIds.forEach(id => {
+                    const inEl = document.getElementById(`${id}In`);
+                    const outEl = document.getElementById(`${id}Out`);
+                    if (inEl && outEl) {
+                        inEl.value = s.start_time || '';
+                        outEl.value = s.end_time || '';
+                    }
+                });
             });
 
             // Populate Broken Schedules

@@ -27,9 +27,17 @@ def check_attendance_flags(attendance_entry) -> None:
     if record_date.weekday() == 6:
         return
 
-    # Map day to schedule blocks
+    # Map day to schedule blocks and individual days
     day_name = record_date.strftime("%A").lower()
-    day_map = {
+    day_short_map = {
+        "monday": "mon",
+        "tuesday": "tue",
+        "wednesday": "wed",
+        "thursday": "thu",
+        "friday": "fri",
+        "saturday": "sat",
+    }
+    block_map = {
         "monday": "mw",
         "wednesday": "mw",
         "tuesday": "tth",
@@ -37,13 +45,21 @@ def check_attendance_flags(attendance_entry) -> None:
         "friday": "fri",
         "saturday": "sat",
     }
-    block = day_map.get(day_name)
-    if not block:
+    short_day = day_short_map.get(day_name)
+    block = block_map.get(day_name)
+    if not short_day and not block:
         return
 
-    user_schedule = Schedule.query.filter_by(
-        user_id=attendance_entry.user_id, day=block
-    ).first()
+    # Check for specific day schedule first, fallback to block schedule
+    user_schedule = None
+    if short_day:
+        user_schedule = Schedule.query.filter_by(
+            user_id=attendance_entry.user_id, day=short_day
+        ).first()
+    if not user_schedule and block:
+        user_schedule = Schedule.query.filter_by(
+            user_id=attendance_entry.user_id, day=block
+        ).first()
 
     if not user_schedule:
         return

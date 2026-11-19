@@ -113,7 +113,7 @@ class Schedule(db.Model):
         nullable=False,
         index=True,
     )
-    day = db.Column(db.String(10), nullable=False)  # 'mw', 'tth', 'fri', 'sat'
+    day = db.Column(db.String(10), nullable=False)  # 'mw', 'tth', 'fri', 'sat', or daily: 'mon', 'tue', 'wed', 'thu'
     start_time = db.Column(db.Time)
     end_time = db.Column(db.Time)
     is_split_shift = db.Column(db.Boolean, default=False)

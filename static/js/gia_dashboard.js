@@ -525,15 +525,27 @@ function setupScheduleModal() {
                 return;
             }
 
-            const dayOrder = { "mw": 1, "tth": 2, "fri": 3, "sat": 4 };
+            const dayOrder = { "mw": 1, "tth": 2, "mon": 3, "tue": 4, "wed": 5, "thu": 6, "fri": 7, "sat": 8 };
             data.schedules.sort((a, b) => {
                 return (dayOrder[a.day.toLowerCase()] || 99) - (dayOrder[b.day.toLowerCase()] || 99);
             });
 
+            const dayNameMap = {
+                "mw": "MW (Mon & Wed)",
+                "tth": "TTh (Tue & Thu)",
+                "mon": "Monday",
+                "tue": "Tuesday",
+                "wed": "Wednesday",
+                "thu": "Thursday",
+                "fri": "Friday",
+                "sat": "Saturday"
+            };
+
             let listHtml = '';
             data.schedules.forEach(sched => {
                 let timeBadge = '';
-                const dayLabel = sched.day.toUpperCase();
+                const dayKey = sched.day.toLowerCase();
+                const dayLabel = dayNameMap[dayKey] || sched.day.toUpperCase();
 
                 if (!sched.start_time || !sched.end_time) {
                     timeBadge = `<span class="badge bg-light text-muted border">No Shift Assigned</span>`;
