@@ -1098,7 +1098,163 @@ def status():
     )
 
 
-def serialize_records(s):
+def evaluate_attendance_status(record, schedules_by_block, settings=None):
+    """Evaluate attendance status checked against the user's assigned schedule.
+
+    Returns a dict with:
+      - status: 'On Duty', 'Completed', 'Late', 'Early Out', 'Overtime', 'Incomplete', 'Unscheduled'
+      - badge_type: 'success', 'warning', 'danger', 'info', 'secondary'
+      - details: descriptive text or matched shift window label
+    """
+    if not record.clock_in and not record.clock_out:
+        return {
+            "status": "Incomplete",
+            "badge_type": "secondary",
+            "details": "No clock-in or clock-out recorded",
+        }
+
+    # Still clocked in (currently active shift)
+    if record.clock_in and not record.clock_out:
+        return {
+            "status": "On Duty",
+            "badge_type": "info",
+            "details": "Currently on duty",
+        }
+
+    # Map weekday to schedule block
+    weekday = record.date.weekday()
+    # Sunday has no scheduled shifts
+    if weekday == 6:
+        return {
+            "status": "Completed (Weekend)",
+            "badge_type": "secondary",
+            "details": "Sunday duty (unscheduled shift)",
+        }
+
+    day_map = {
+        0: "mw",
+        1: "tth",
+        2: "mw",
+        3: "tth",
+        4: "fri",
+        5: "sat",
+    }
+    block = day_map.get(weekday)
+    sched = schedules_by_block.get(block) if block else None
+
+    # If no schedule assigned for this day block
+    if not sched or (not sched.start_time and not sched.end_time):
+        return {
+            "status": "Completed (Unscheduled)",
+            "badge_type": "secondary",
+            "details": "Completed without assigned shift schedule",
+        }
+
+    # Collect scheduled shift windows for this day
+    shift_windows = []
+    if sched.start_time and sched.end_time:
+        shift_windows.append(
+            {
+                "label": "Primary Shift",
+                "start": sched.start_time,
+                "end": sched.end_time,
+            }
+        )
+    if getattr(sched, "is_split_shift", False) and sched.split_start_time and sched.split_end_time:
+        shift_windows.append(
+            {
+                "label": "Second Shift",
+                "start": sched.split_start_time,
+                "end": sched.split_end_time,
+            }
+        )
+
+    if not shift_windows:
+        return {
+            "status": "Completed (Unscheduled)",
+            "badge_type": "secondary",
+            "details": "Completed without assigned shift schedule",
+        }
+
+    # Match attendance record to the closest shift window
+    clock_in_dt = datetime.combine(record.date, record.clock_in)
+    clock_out_dt = datetime.combine(record.date, record.clock_out)
+    allowed_early_in = settings.allowed_early_in_mins if settings else 15
+
+    matched_window = None
+    for window in shift_windows:
+        earliest_start_dt = datetime.combine(record.date, window["start"]) - timedelta(minutes=allowed_early_in)
+        shift_end_dt = datetime.combine(record.date, window["end"])
+        if earliest_start_dt <= clock_in_dt <= shift_end_dt:
+            matched_window = window
+            break
+
+    if not matched_window:
+        matched_window = min(
+            shift_windows,
+            key=lambda w: abs((clock_in_dt - datetime.combine(record.date, w["start"])).total_seconds()),
+        )
+
+    sched_start_dt = datetime.combine(record.date, matched_window["start"])
+    sched_end_dt = datetime.combine(record.date, matched_window["end"])
+
+    # Check for schedule compliance / deviations
+    # 1. Late: clock_in > scheduled start
+    is_late = clock_in_dt > sched_start_dt
+    # 2. Early out: clock_out < scheduled end
+    is_early_out = clock_out_dt < sched_end_dt
+    # 3. Overtime: worked duration exceeds scheduled shift duration by threshold (e.g. > 15 mins)
+    work_duration = clock_out_dt - clock_in_dt
+    sched_duration = sched_end_dt - sched_start_dt
+    is_overtime = work_duration > sched_duration + timedelta(minutes=30)
+
+    # Compile status flags
+    flags = []
+    if is_late:
+        late_mins = int((clock_in_dt - sched_start_dt).total_seconds() // 60)
+        flags.append(f"Late by {late_mins}m")
+    if is_early_out:
+        early_mins = int((sched_end_dt - clock_out_dt).total_seconds() // 60)
+        flags.append(f"Early Out by {early_mins}m")
+    if is_overtime:
+        ot_mins = int((work_duration - sched_duration).total_seconds() // 60)
+        flags.append(f"OT +{ot_mins}m")
+
+    shift_time_range = f"{matched_window['start'].strftime('%I:%M %p')} - {matched_window['end'].strftime('%I:%M %p')}"
+
+    if is_late and is_early_out:
+        return {
+            "status": "Late & Early Out",
+            "badge_type": "warning",
+            "details": f"{matched_window['label']} ({shift_time_range}): {', '.join(flags)}",
+        }
+    if is_late:
+        return {
+            "status": "Late",
+            "badge_type": "warning",
+            "details": f"{matched_window['label']} ({shift_time_range}): {', '.join(flags)}",
+        }
+    if is_early_out:
+        return {
+            "status": "Early Out",
+            "badge_type": "warning",
+            "details": f"{matched_window['label']} ({shift_time_range}): {', '.join(flags)}",
+        }
+    if is_overtime:
+        return {
+            "status": "Overtime",
+            "badge_type": "info",
+            "details": f"{matched_window['label']} ({shift_time_range}): {', '.join(flags)}",
+        }
+
+    return {
+        "status": "On Time",
+        "badge_type": "success",
+        "details": f"{matched_window['label']} ({shift_time_range})",
+    }
+
+
+def serialize_records(s, schedules_by_block=None, settings=None):
     if s.clock_in and s.clock_out:
         clock_in_dt = datetime.combine(s.date, s.clock_in)
         clock_out_dt = datetime.combine(s.date, s.clock_out)
@@ -1107,11 +1263,21 @@ def serialize_records(s):
     else:
         t_hours = 0.0
 
+    schedule_eval = None
+    if schedules_by_block is not None:
+        schedule_eval = evaluate_attendance_status(s, schedules_by_block, settings)
+
     return {
+        "id": s.id,
         "date": s.date.strftime("%b %d, %Y"),
+        "raw_date": s.date.strftime("%Y-%m-%d"),
         "clock_in": s.clock_in.strftime("%I:%M %p").lower() if s.clock_in else "",
         "clock_out": s.clock_out.strftime("%I:%M %p").lower() if s.clock_out else "",
         "total_hours": t_hours,
+        "is_manual": bool(s.is_manual),
+        "status": schedule_eval["status"] if schedule_eval else ("Completed" if (s.clock_in and s.clock_out) else ("On Duty" if s.clock_in else "Incomplete")),
+        "badge_type": schedule_eval["badge_type"] if schedule_eval else ("success" if (s.clock_in and s.clock_out) else ("info" if s.clock_in else "secondary")),
+        "status_details": schedule_eval["details"] if schedule_eval else "",
     }
 
 
@@ -1141,7 +1307,12 @@ def gia_data():
         .all()
     )
 
-    user_records = [serialize_records(r) for r in records]
+    # Fetch user schedules and global settings for schedule checking
+    user_schedules = Schedule.query.filter_by(user_id=user_id).all()
+    schedules_by_block = {s.day.lower(): s for s in user_schedules}
+    global_settings = GlobalSettings.get()
+
+    user_records = [serialize_records(r, schedules_by_block, global_settings) for r in records]
 
     sum_hours = 0.0
     today_hours = 0.0

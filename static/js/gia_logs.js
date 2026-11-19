@@ -288,25 +288,48 @@ function renderLogsTable(records) {
     tbody.innerHTML = '';
     records.forEach(record => {
         const tr = document.createElement('tr');
-        const isCompleted = Boolean(record.clock_in && record.clock_out);
         const hoursNum = parseFloat(record.total_hours) || 0.0;
 
-        let statusBadge = `<span class="badge bg-secondary-subtle text-secondary border">Incomplete</span>`;
-        if (isCompleted) {
-            statusBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle">Completed</span>`;
-        } else if (record.clock_in) {
-            statusBadge = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle">On Duty</span>`;
+        // Dynamic schedule-aware badge formatting
+        const statusText = record.status || (record.clock_in && record.clock_out ? 'Completed' : (record.clock_in ? 'On Duty' : 'Incomplete'));
+        const badgeType = record.badge_type || 'secondary';
+        const detailsTooltip = record.status_details ? `data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(record.status_details)}"` : '';
+
+        let badgeClasses = 'bg-secondary-subtle text-secondary border';
+        let badgeIcon = 'bi-dash-circle';
+
+        if (badgeType === 'success') {
+            badgeClasses = 'bg-success-subtle text-success border border-success-subtle';
+            badgeIcon = 'bi-check-circle-fill';
+        } else if (badgeType === 'warning') {
+            badgeClasses = 'bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+            badgeIcon = 'bi-exclamation-triangle-fill';
+        } else if (badgeType === 'danger') {
+            badgeClasses = 'bg-danger-subtle text-danger border border-danger-subtle';
+            badgeIcon = 'bi-x-circle-fill';
+        } else if (badgeType === 'info') {
+            badgeClasses = 'bg-primary-subtle text-primary border border-primary-subtle';
+            badgeIcon = 'bi-broadcast';
         }
+
+        const statusBadge = `<span class="badge ${badgeClasses} d-inline-flex align-items-center gap-1" ${detailsTooltip} style="cursor: ${record.status_details ? 'help' : 'default'};">
+            <i class="bi ${badgeIcon}"></i>
+            <span>${escapeHtml(statusText)}</span>
+        </span>`;
 
         tr.innerHTML = `
             <td class="ps-4 fw-medium font-mono text-dark">${escapeHtml(record.date || '-')}</td>
-            <td class="text-center font-mono">${escapeHtml(record.clock_in || '-')}</td>
-            <td class="text-center font-mono">${escapeHtml(record.clock_out || '-')}</td>
+            <td class="text-center font-mono">${escapeHtml(record.clock_in ? record.clock_in.toUpperCase() : '-')}</td>
+            <td class="text-center font-mono">${escapeHtml(record.clock_out ? record.clock_out.toUpperCase() : '-')}</td>
             <td class="text-center font-mono fw-bold ${hoursNum > 0 ? 'text-primary' : 'text-muted'}">${hoursNum.toFixed(2)} hrs</td>
             <td class="text-center pe-4">${statusBadge}</td>
         `;
         tbody.appendChild(tr);
     });
+
+    // Initialize Bootstrap tooltips if any
+    const tooltipTriggerList = [].slice.call(tbody.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 }
 
 function escapeHtml(str) {

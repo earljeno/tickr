@@ -128,6 +128,52 @@ function updateClockButtonUI() {
     }
 }
 
+function setDashboardLoading(isLoading) {
+    const summaryTotalEl = document.getElementById('summaryTotalHours');
+    const summaryRemainingEl = document.getElementById('summaryRemaining');
+    const summaryTodayEl = document.getElementById('summaryToday');
+    const summaryActiveDaysEl = document.getElementById('summaryActiveDays');
+    const trendContainer = document.getElementById('trendBarsContainer');
+    const tbody = document.getElementById('activityTableBody');
+    const recordsCountBadge = document.getElementById('recordsCountBadge');
+
+    const statElements = [summaryTotalEl, summaryRemainingEl, summaryTodayEl, summaryActiveDaysEl];
+
+    if (isLoading) {
+        statElements.forEach(el => {
+            if (el) el.classList.add('skeleton-loading');
+        });
+
+        if (recordsCountBadge) {
+            recordsCountBadge.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Loading...';
+        }
+
+        if (trendContainer) {
+            trendContainer.innerHTML = `
+                <div class="w-100 d-flex flex-column align-items-center justify-content-center py-4 text-muted">
+                    <div class="spinner-border text-primary spinner-border-sm mb-2" role="status"></div>
+                    <small>Loading monthly trends...</small>
+                </div>
+            `;
+        }
+
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-5">
+                        <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
+                        <span>Loading attendance records...</span>
+                    </td>
+                </tr>
+            `;
+        }
+    } else {
+        statElements.forEach(el => {
+            if (el) el.classList.remove('skeleton-loading');
+        });
+    }
+}
+
 /**
  * Fetch and render attendance records, summaries, progress bars, and flags
  */
@@ -135,6 +181,8 @@ async function loadRecords() {
     if (!clockBtn) return;
     const userId = clockBtn.getAttribute('data-user-id');
     const month = monthFilter ? monthFilter.value : '';
+
+    setDashboardLoading(true);
 
     try {
         const response = await fetch(
@@ -211,11 +259,15 @@ async function loadRecords() {
             trendMonthBadge.textContent = d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
         }
 
-        // Check for active running shift in records
+        // Check for active running shift in records (must be today's date)
         activeClockInTime = null;
         if (records.length > 0) {
             const latest = records[0];
-            if (latest.clock_in && (!latest.clock_out || latest.clock_out === '-')) {
+            const isToday = latest.is_today !== undefined
+                ? latest.is_today
+                : (latest.raw_date === new Date().toISOString().slice(0, 10));
+
+            if (isToday && latest.clock_in && (!latest.clock_out || latest.clock_out === '-')) {
                 activeClockInTime = latest.clock_in;
                 if (shiftStartTimeEl) shiftStartTimeEl.textContent = latest.clock_in.toUpperCase();
             }
@@ -232,6 +284,8 @@ async function loadRecords() {
         if (errorTitle) errorTitle.textContent = "Error Loading Records";
         if (errorMessage) errorMessage.textContent = "Could not fetch data. Please try again.";
         if (errorModal) errorModal.show();
+    } finally {
+        setDashboardLoading(false);
     }
 }
 
@@ -250,25 +304,54 @@ function renderActivityTable(records) {
 
     records.forEach(record => {
         const tr = document.createElement('tr');
-        const isCompleted = Boolean(record.clock_in && record.clock_out && record.clock_out !== '-');
-        const isOnDuty = Boolean(record.clock_in && (!record.clock_out || record.clock_out === '-'));
+        const statusText = record.status || (record.clock_in && record.clock_out ? 'Completed' : (record.clock_in ? 'On Duty' : 'Incomplete'));
+        const badgeType = record.badge_type || 'secondary';
+        const detailsTooltip = record.status_details ? `data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(record.status_details)}"` : '';
 
-        let statusBadge = '<span class="badge-status incomplete"><i class="bi bi-dash-circle"></i> Incomplete</span>';
-        if (isCompleted) {
-            statusBadge = '<span class="badge-status completed"><i class="bi bi-check-circle-fill"></i> Completed</span>';
-        } else if (isOnDuty) {
-            statusBadge = '<span class="badge-status active"><i class="bi bi-broadcast"></i> On Duty</span>';
+        let badgeClass = 'incomplete';
+        let badgeIcon = 'bi-dash-circle';
+
+        if (badgeType === 'success') {
+            badgeClass = 'completed';
+            badgeIcon = 'bi-check-circle-fill';
+        } else if (badgeType === 'warning') {
+            badgeClass = 'late';
+            badgeIcon = 'bi-exclamation-triangle-fill';
+        } else if (badgeType === 'info') {
+            badgeClass = 'active';
+            badgeIcon = 'bi-broadcast';
+        } else if (badgeType === 'secondary') {
+            badgeClass = 'unscheduled';
+            badgeIcon = 'bi-info-circle';
         }
 
+        const statusBadge = `<span class="badge-status ${badgeClass}" ${detailsTooltip} style="cursor: ${record.status_details ? 'help' : 'default'};">
+            <i class="bi ${badgeIcon}"></i> <span>${escapeHtml(statusText)}</span>
+        </span>`;
+
         tr.innerHTML = `
-            <td class="text-center font-mono fw-medium">${record.date || '-'}</td>
-            <td class="text-center font-mono">${record.clock_in ? record.clock_in.toUpperCase() : '-'}</td>
-            <td class="text-center font-mono">${record.clock_out ? record.clock_out.toUpperCase() : '-'}</td>
+            <td class="text-center font-mono fw-medium">${escapeHtml(record.date || '-')}</td>
+            <td class="text-center font-mono">${escapeHtml(record.clock_in ? record.clock_in.toUpperCase() : '-')}</td>
+            <td class="text-center font-mono">${escapeHtml(record.clock_out ? record.clock_out.toUpperCase() : '-')}</td>
             <td class="text-center">${statusBadge}</td>
             <td class="text-center font-mono fw-bold">${parseFloat(record.total_hours || 0).toFixed(2)} hrs</td>
         `;
         tbody.appendChild(tr);
     });
+
+    // Initialize tooltips for status details
+    const tooltipTriggerList = [].slice.call(tbody.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 /**
