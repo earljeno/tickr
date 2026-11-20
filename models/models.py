@@ -143,6 +143,7 @@ class GlobalSettings(db.Model):
     default_start = db.Column(db.Time, default=time(8, 0))
     default_end = db.Column(db.Time, default=time(17, 0))
     allowed_early_in_mins = db.Column(db.Integer, default=5)
+    allowed_late_mins = db.Column(db.Integer, default=10)
 
     @classmethod
     def get(cls) -> "GlobalSettings":
@@ -164,6 +165,7 @@ class GlobalSettings(db.Model):
                 default_start=time(8, 0),
                 default_end=time(17, 0),
                 allowed_early_in_mins=5,
+                allowed_late_mins=10,
             )
             db.session.add(settings)
             try:

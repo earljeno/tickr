@@ -117,7 +117,16 @@ def check_attendance_flags(attendance_entry) -> None:
     shift_label = matched_window["label"]
     schedule_start = datetime.combine(record_date, matched_window["start"])
     schedule_end = datetime.combine(record_date, matched_window["end"])
-    allowed_late_minutes = 0
+
+    # Grace period calculation:
+    # Base late grace from settings (defaults to 10 minutes).
+    # If the schedule is a split shift, divide the grace period (e.g., 10 mins -> 5 mins per shift).
+    base_late_grace = getattr(settings, "allowed_late_mins", 10) if settings else 10
+    if base_late_grace is None:
+        base_late_grace = 10
+
+    is_split = getattr(user_schedule, "is_split_shift", False)
+    allowed_late_minutes = (base_late_grace // 2) if is_split else base_late_grace
 
     # LATE: Clock-in is after scheduled start + grace period
     if clock_in_dt > schedule_start + timedelta(minutes=allowed_late_minutes):
@@ -146,10 +155,13 @@ def check_attendance_flags(attendance_entry) -> None:
     if attendance_entry.clock_out:
         clock_out_dt = datetime.combine(record_date, attendance_entry.clock_out)
 
-        # EARLY OUT: Clock-out before scheduled end
+        # EARLY OUT: Clock-out before scheduled end (with split-aware 5m/2m grace buffer)
         # Only flag if allow_early_out is False (or not allowed by settings)
         allow_early_out = getattr(settings, "allow_early_out", True) if settings else True
-        if not allow_early_out and clock_out_dt < schedule_end:
+        base_early_out_grace = 5  # standard 5-minute buffer before considered early out
+        early_out_grace = (base_early_out_grace // 2) if is_split else base_early_out_grace
+
+        if not allow_early_out and clock_out_dt < schedule_end - timedelta(minutes=early_out_grace):
             existing_early = AttendanceInconsistency.query.filter(
                 AttendanceInconsistency.user_id == attendance_entry.user_id,
                 AttendanceInconsistency.date == record_date,

@@ -34,7 +34,7 @@ function setupToggleHandlers() {
         });
     }
 
-    ['allowEarlyOut', 'allowOvertime', 'unitHeadName', 'defaultStartTime', 'defaultEndTime', 'earlyInMinutes'].forEach(id => {
+    ['allowEarlyOut', 'allowOvertime', 'unitHeadName', 'defaultStartTime', 'defaultEndTime', 'earlyInMinutes', 'lateGraceMinutes'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input', updateSummary);
@@ -106,6 +106,7 @@ function loadSettings() {
 
             setVal('strictModeEndDate', settings.strict_duration || '');
             setVal('earlyInMinutes', settings.early_allowance !== undefined ? settings.early_allowance : '15');
+            setVal('lateGraceMinutes', settings.late_grace !== undefined ? settings.late_grace : '10');
 
             const earlyOutEl = document.getElementById('allowEarlyOut');
             if (earlyOutEl) earlyOutEl.checked = !!settings.early;
@@ -177,6 +178,7 @@ function saveSettings() {
         enableStrictMode: document.getElementById('enableStrictMode')?.checked || false,
         strictDuration: document.getElementById('strictModeEndDate')?.value || '',
         earlyInMinutes: document.getElementById('earlyInMinutes')?.value || 0,
+        lateGraceMinutes: document.getElementById('lateGraceMinutes')?.value || 10,
         allowEarlyOut: document.getElementById('allowEarlyOut')?.checked || false,
         allowOvertime: document.getElementById('allowOvertime')?.checked || false,
         defaultStartTime: document.getElementById('defaultStartTime')?.value || '',
@@ -213,6 +215,7 @@ function updateSummary() {
     const endTime = document.getElementById('defaultEndTime')?.value;
     const strictMode = document.getElementById('enableStrictMode')?.checked;
     const earlyInMinutes = document.getElementById('earlyInMinutes')?.value || '0';
+    const lateGraceMinutes = document.getElementById('lateGraceMinutes')?.value || '10';
     const earlyOut = document.getElementById('allowEarlyOut')?.checked;
     const overtime = document.getElementById('allowOvertime')?.checked;
     
@@ -233,6 +236,11 @@ function updateSummary() {
     const summaryEarlyIn = document.getElementById('summaryEarlyIn');
     if (summaryEarlyIn) {
         summaryEarlyIn.textContent = `${earlyInMinutes} minutes`;
+    }
+
+    const summaryLateGrace = document.getElementById('summaryLateGrace');
+    if (summaryLateGrace) {
+        summaryLateGrace.textContent = `${lateGraceMinutes} minutes`;
     }
 
     const summaryEarlyOut = document.getElementById('summaryEarlyOut');

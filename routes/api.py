@@ -851,6 +851,7 @@ def get_settings():
         "def_start": s.default_start.strftime("%H:%M") if s.default_start else "08:00",
         "def_end": s.default_end.strftime("%H:%M") if s.default_end else "17:00",
         "early_allowance": s.allowed_early_in_mins,
+        "late_grace": getattr(s, "allowed_late_mins", 10) if getattr(s, "allowed_late_mins", None) is not None else 10,
     }
 
     return jsonify(settings)
@@ -871,6 +872,7 @@ def update_settings():
         "enable_strict_schedule": settings.enable_strict_schedule,
         "strict_duration": settings.strict_duration,
         "allowed_early_in_mins": settings.allowed_early_in_mins,
+        "allowed_late_mins": getattr(settings, "allowed_late_mins", 10),
         "allow_early_out": settings.allow_early_out,
         "allow_overtime": settings.allow_overtime,
         "default_start": settings.default_start.strftime("%H:%M") if settings.default_start else None,
@@ -886,6 +888,10 @@ def update_settings():
     if "earlyInMinutes" in data:
         with contextlib.suppress(ValueError, TypeError):
             settings.allowed_early_in_mins = max(0, int(data.get("earlyInMinutes", 0)))
+
+    if "lateGraceMinutes" in data:
+        with contextlib.suppress(ValueError, TypeError):
+            settings.allowed_late_mins = max(0, int(data.get("lateGraceMinutes", 0)))
 
     if "allowEarlyOut" in data:
         settings.allow_early_out = bool(data.get("allowEarlyOut"))

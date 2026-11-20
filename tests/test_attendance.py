@@ -166,7 +166,7 @@ def test_split_shift_attendance_flags(app):
         ).all()
         assert len(flags) == 0
 
-        # Case 2: Clock in late for second shift (13:15)
+        # Case 2: Clock in late for second shift (13:15, which is > 13:00 + 5m split grace)
         # Should be flagged as Late for second shift, referencing second shift's 1:00 PM start
         att_second_late = Attendance(
             user_id="2024001",
@@ -185,6 +185,23 @@ def test_split_shift_attendance_flags(app):
         assert late_flag is not None
         assert "second shift" in late_flag.details
         assert "01:00 PM" in late_flag.details
+
+        # Case 2b: Clock in within grace period (13:04, within 5m split grace)
+        # Should NOT be flagged as Late
+        att_second_grace = Attendance(
+            user_id="2024001",
+            date=monday_date,
+            clock_in=time(13, 4),
+            clock_out=time(17, 0),
+        )
+        db.session.add(att_second_grace)
+        db.session.commit()
+        check_attendance_flags(att_second_grace)
+        # Count should still only be 1 (from the 13:15 one)
+        all_late = AttendanceInconsistency.query.filter_by(
+            user_id="2024001", date=monday_date, issue_type="Late"
+        ).all()
+        assert len(all_late) == 1
 
         # Case 3: Early out on primary shift (clock-out at 11:30 when end is 12:00)
         tuesday_date = date(2026, 11, 3)  # Tuesday (tth)

@@ -91,7 +91,25 @@
                                         <input type="number" class="form-control font-mono text-center" id="earlyInMinutes" min="0" max="120" value="15">
                                         <span class="input-group-text bg-white">minutes</span>
                                     </div>
-                                    <small class="text-muted">Maximum minutes allowed before shift starts (typically 15 minutes).</small>
+                                    <small class="text-muted">Maximum minutes allowed before shift starts (divided by 2 for split shifts).</small>
+                                </div>
+                            </div>
+
+                            <!-- Late Arrival Grace Period -->
+                            <div class="p-3 border rounded bg-light mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <label class="form-label fw-bold text-dark mb-1">Late Arrival Grace Period</label>
+                                        <div class="text-muted small">Grace buffer before an assistant is flagged as Late. For split shifts, this buffer is divided equally.</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 pt-3 border-top">
+                                    <label for="lateGraceMinutes" class="form-label">Late Grace Window (Minutes)</label>
+                                    <div class="input-group" style="max-width: 240px;">
+                                        <input type="number" class="form-control font-mono text-center" id="lateGraceMinutes" min="0" max="60" value="10">
+                                        <span class="input-group-text bg-white">minutes</span>
+                                    </div>
+                                    <small class="text-muted">Default 10 mins (5 mins per shift for split shifts; min 0 mins).</small>
                                 </div>
                             </div>
 
@@ -171,6 +189,11 @@
                         <div class="summary-item">
                             <div class="summary-label">Early Clock-In Grace</div>
                             <div class="summary-value font-mono" id="summaryEarlyIn">15 minutes</div>
+                        </div>
+
+                        <div class="summary-item">
+                            <div class="summary-label">Late Arrival Grace</div>
+                            <div class="summary-value font-mono" id="summaryLateGrace">10 minutes</div>
                         </div>
 
                         <div class="summary-item">
