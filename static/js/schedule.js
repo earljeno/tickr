@@ -458,7 +458,7 @@ async function loadSchedules() {
                             <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle py-1 px-2" title="Flexible Open Time / Office Hours Fallback">
                                 <i class="bi bi-unlock-fill me-1"></i>Open Time
                             </span>
-                            <div class="text-muted small mt-1" style="font-size: 0.7rem;">OJT / Flex</div>
+                            <div class="text-muted small mt-1" style="font-size: 0.7rem;">Flexible</div>
                         `;
                     } else if (!hasPrimary && !hasSplit) {
                         cellContent = '<span class="text-muted small">-</span>';

@@ -117,7 +117,7 @@ def test_update_daily_schedule(admin_client):
 
 
 def test_open_time_schedule_flow(admin_client):
-    # Set Saturday as Open Time (OJT / office hours fallback)
+    # Set Saturday as Open Time (Flexible / office hours fallback)
     payload = {
         "schedule_mode": "block",
         "schedules": [

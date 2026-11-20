@@ -64,7 +64,7 @@ def check_attendance_flags(attendance_entry) -> None:
     if not user_schedule:
         return
 
-    # If this schedule day is configured as Open Time (e.g. for OJT / catch-up hours),
+    # If this schedule day is configured as Open Time (e.g. for flexible / catch-up hours),
     # the GIA is allowed to render flexible hours within facility operating boundaries
     # without being flagged as Late or Early Out.
     if getattr(user_schedule, "is_open_time", False):

@@ -231,7 +231,7 @@ def test_split_shift_attendance_flags(app):
         assert "primary shift" in early_flag.details
         assert "12:00 PM" in early_flag.details
 
-        # Case 4: Open Time Day (e.g. Saturday OJT / hours catch-up)
+        # Case 4: Open Time Day (e.g. Saturday flexible / hours catch-up)
         # Should NOT flag Late or Early Out even when clock-in/out occurs at arbitrary times
         saturday_date = date(2026, 11, 7)  # Saturday
         sat_sched = Schedule.query.filter_by(user_id="2024001", day="sat").first()
