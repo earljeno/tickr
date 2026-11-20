@@ -587,7 +587,13 @@ function setupScheduleModal() {
                 const dayKey = sched.day.toLowerCase();
                 const dayLabel = dayNameMap[dayKey] || sched.day.toUpperCase();
 
-                if (!sched.start_time || !sched.end_time) {
+                if (sched.is_open_time) {
+                    timeBadge = `
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                            <i class="bi bi-unlock-fill me-1"></i>Open Time (Flexible)
+                        </span>
+                    `;
+                } else if (!sched.start_time || !sched.end_time) {
                     timeBadge = `<span class="badge bg-light text-muted border">No Shift Assigned</span>`;
                 } else if (sched.is_split_shift) {
                     timeBadge = `
@@ -608,11 +614,20 @@ function setupScheduleModal() {
                     `;
                 }
 
+                let shiftSubtitle = 'Unscheduled';
+                if (sched.is_open_time) {
+                    shiftSubtitle = 'Flexible / Office Hours';
+                } else if (sched.is_split_shift) {
+                    shiftSubtitle = 'Split Shift';
+                } else if (sched.start_time) {
+                    shiftSubtitle = 'Regular Shift';
+                }
+
                 listHtml += `
                     <div class="shift-item">
                         <div>
                             <span class="fw-bold d-block text-dark">${dayLabel}</span>
-                            <small class="text-muted">${sched.is_split_shift ? 'Split Shift' : (sched.start_time ? 'Regular Shift' : 'Unscheduled')}</small>
+                            <small class="text-muted">${shiftSubtitle}</small>
                         </div>
                         <div>${timeBadge}</div>
                     </div>
