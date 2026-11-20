@@ -231,6 +231,33 @@ def test_split_shift_attendance_flags(app):
         assert "primary shift" in early_flag.details
         assert "12:00 PM" in early_flag.details
 
+        # Case 4: Open Time Day (e.g. Saturday OJT / hours catch-up)
+        # Should NOT flag Late or Early Out even when clock-in/out occurs at arbitrary times
+        saturday_date = date(2026, 11, 7)  # Saturday
+        sat_sched = Schedule.query.filter_by(user_id="2024001", day="sat").first()
+        if not sat_sched:
+            sat_sched = Schedule(user_id="2024001", day="sat", is_open_time=True)
+            db.session.add(sat_sched)
+        else:
+            sat_sched.is_open_time = True
+        db.session.commit()
+
+        att_open = Attendance(
+            user_id="2024001",
+            date=saturday_date,
+            clock_in=time(10, 45),  # Arbitrary time
+            clock_out=time(15, 30),
+        )
+        db.session.add(att_open)
+        db.session.commit()
+
+        check_attendance_flags(att_open)
+
+        sat_flags = AttendanceInconsistency.query.filter_by(
+            user_id="2024001", date=saturday_date
+        ).all()
+        assert len(sat_flags) == 0
+
 
 def test_ip_whitelist_allows_dashboard_view_but_blocks_clocking(gia_client, monkeypatch):
     """GIA users can view their dashboard on non-whitelisted devices, but clock in/out is blocked."""

@@ -116,3 +116,36 @@ def test_update_daily_schedule(admin_client):
     assert user_mon["start_time"] != ""
 
 
+def test_open_time_schedule_flow(admin_client):
+    # Set Saturday as Open Time (OJT / office hours fallback)
+    payload = {
+        "schedule_mode": "block",
+        "schedules": [
+            {"day": "mw", "start_time": "08:00", "end_time": "12:00"},
+            {"day": "tth", "start_time": "08:00", "end_time": "12:00"},
+            {"day": "fri", "start_time": "08:00", "end_time": "12:00"},
+            {"day": "sat", "is_open_time": True},
+        ],
+        "brokenSched": [],
+    }
+    res = admin_client.post("/api/update-schedule/2024001", json=payload)
+    assert res.status_code == 200
+
+    sched_res = admin_client.get("/api/get-schedule/2024001")
+    assert sched_res.status_code == 200
+    data = sched_res.get_json()
+    sat_sched = next(s for s in data["schedules"] if s["day"] == "sat")
+    assert sat_sched["is_open_time"] is True
+
+    # In get-schedules, daily_hours for open_time should be 0.0 (excluded from 24h total calculation)
+    all_res = admin_client.get("/api/get-schedules")
+    assert all_res.status_code == 200
+    all_data = all_res.get_json()
+    user_sat = next(
+        s for s in all_data["schedules"]
+        if s["user_id"] == "2024001" and s["day"] == "sat"
+    )
+    assert user_sat["is_open_time"] is True
+    assert user_sat["daily_hours"] == 0.0
+
+

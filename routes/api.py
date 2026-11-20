@@ -341,16 +341,19 @@ def export_gia_logs():
 def serialize_schedule(s):
     primary_h = 0.0
     split_h = 0.0
-    if s.start_time and s.end_time:
-        diff1 = (datetime.combine(date.min, s.end_time) - datetime.combine(date.min, s.start_time)).total_seconds()
-        if diff1 < 0:
-            diff1 += 86400
-        primary_h = diff1 / 3600.0
-    if s.is_split_shift and s.split_start_time and s.split_end_time:
-        diff2 = (datetime.combine(date.min, s.split_end_time) - datetime.combine(date.min, s.split_start_time)).total_seconds()
-        if diff2 < 0:
-            diff2 += 86400
-        split_h = diff2 / 3600.0
+    is_open = bool(getattr(s, "is_open_time", False))
+
+    if not is_open:
+        if s.start_time and s.end_time:
+            diff1 = (datetime.combine(date.min, s.end_time) - datetime.combine(date.min, s.start_time)).total_seconds()
+            if diff1 < 0:
+                diff1 += 86400
+            primary_h = diff1 / 3600.0
+        if s.is_split_shift and s.split_start_time and s.split_end_time:
+            diff2 = (datetime.combine(date.min, s.split_end_time) - datetime.combine(date.min, s.split_start_time)).total_seconds()
+            if diff2 < 0:
+                diff2 += 86400
+            split_h = diff2 / 3600.0
 
     daily_h = round(primary_h + split_h, 2)
 
@@ -362,6 +365,7 @@ def serialize_schedule(s):
         "is_split_shift": bool(s.is_split_shift),
         "split_start_time": s.split_start_time.strftime("%I:%M %p") if s.split_start_time else "",
         "split_end_time": s.split_end_time.strftime("%I:%M %p") if s.split_end_time else "",
+        "is_open_time": is_open,
         "daily_hours": daily_h,
     }
 
@@ -461,6 +465,7 @@ def get_user_schedule(user_id):
             "is_split_shift": s.is_split_shift,
             "split_start_time": s.split_start_time.strftime("%H:%M") if s.split_start_time else None,
             "split_end_time": s.split_end_time.strftime("%H:%M") if s.split_end_time else None,
+            "is_open_time": bool(getattr(s, "is_open_time", False)),
         }
         for s in schedules
     ]
@@ -507,10 +512,11 @@ def update_schedule(user_id):
             match = next((s for s in schedules if s.get("day") == day), None)
             broken_match = next((b for b in broken_scheds if b.get("day") == day), None)
 
-            start_time = parse_time(match.get("start_time")) if match else None
-            end_time = parse_time(match.get("end_time")) if match else None
-            split_start_time = parse_time(broken_match.get("split_start_time")) if broken_match else None
-            split_end_time = parse_time(broken_match.get("split_end_time")) if broken_match else None
+            is_open_time = bool(match.get("is_open_time")) if match else False
+            start_time = parse_time(match.get("start_time")) if (match and not is_open_time) else None
+            end_time = parse_time(match.get("end_time")) if (match and not is_open_time) else None
+            split_start_time = parse_time(broken_match.get("split_start_time")) if (broken_match and not is_open_time) else None
+            split_end_time = parse_time(broken_match.get("split_end_time")) if (broken_match and not is_open_time) else None
 
             is_broken = bool(split_start_time and split_end_time)
 
@@ -522,6 +528,7 @@ def update_schedule(user_id):
                 sched.split_start_time = split_start_time
                 sched.split_end_time = split_end_time
                 sched.is_split_shift = is_broken
+                sched.is_open_time = is_open_time
             elif match or broken_match:
                 new_sched = Schedule(
                     user_id=user_id,
@@ -531,6 +538,7 @@ def update_schedule(user_id):
                     split_start_time=split_start_time,
                     split_end_time=split_end_time,
                     is_split_shift=is_broken,
+                    is_open_time=is_open_time,
                 )
                 db.session.add(new_sched)
 
@@ -1389,8 +1397,26 @@ def clock_in():
         valid_schedule_start = None
         is_split_shift = False
 
+        # Open Time Schedule: allows clocking in flexibly within facility operating hours
+        is_open_today = any(getattr(s, "is_open_time", False) for s in user_schedules)
+
         if day_name == "sunday":
             valid_schedule_start = global_settings.default_end if global_settings else None
+        elif is_open_today:
+            # Fallback to office hours / facility operating window
+            office_start = (global_settings.default_start if global_settings and global_settings.default_start else time(7, 30))
+            office_end = (global_settings.default_end if global_settings and global_settings.default_end else time(20, 30))
+            earliest_office_in = (
+                datetime.combine(today_date, office_start) - timedelta(minutes=special_early_in)
+            ).time()
+
+            if earliest_office_in <= now_time <= office_end:
+                valid_schedule_start = office_start
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": f"Outside office operating hours ({office_start.strftime('%I:%M %p')} - {office_end.strftime('%I:%M %p')})."
+                }), 400
         else:
             for sched in user_schedules:
                 if sched.start_time and sched.end_time:
@@ -1560,25 +1586,31 @@ def clock_out():
         schedule_end = None
         is_split_shift = False
 
+        is_open_today = any(getattr(s, "is_open_time", False) for s in user_schedules)
+
         if strict_schedule:
-            if not user_schedules and day_name == "sunday":
+            if is_open_today:
+                # Open Time day: GIA can clock out anytime up to office closing boundary
+                # Do not constrain to a fixed shift end
+                schedule_end = None
+            elif not user_schedules and day_name == "sunday":
                 schedule_end = global_settings.default_end if global_settings else None
+            else:
+                for sched in user_schedules:
+                    if sched.start_time and sched.end_time:
+                        early_start = (datetime.combine(today, sched.start_time) - timedelta(hours=1)).time()
+                        if early_start <= clock_in_time <= sched.end_time:
+                            schedule_end = sched.end_time
+                            break
 
-            for sched in user_schedules:
-                if sched.start_time and sched.end_time:
-                    early_start = (datetime.combine(today, sched.start_time) - timedelta(hours=1)).time()
-                    if early_start <= clock_in_time <= sched.end_time:
-                        schedule_end = sched.end_time
-                        break
-
-                if getattr(sched, "is_split_shift", False) and sched.split_start_time and sched.split_end_time:
-                    early_second_start = (
-                        datetime.combine(today, sched.split_start_time) - timedelta(hours=1)
-                    ).time()
-                    if early_second_start <= clock_in_time <= sched.split_end_time:
-                        schedule_end = sched.split_end_time
-                        is_split_shift = True
-                        break
+                    if getattr(sched, "is_split_shift", False) and sched.split_start_time and sched.split_end_time:
+                        early_second_start = (
+                            datetime.combine(today, sched.split_start_time) - timedelta(hours=1)
+                        ).time()
+                        if early_second_start <= clock_in_time <= sched.split_end_time:
+                            schedule_end = sched.split_end_time
+                            is_split_shift = True
+                            break
 
             if schedule_end:
                 actual_clock_out_dt = datetime.combine(today, actual_clock_out)

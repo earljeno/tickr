@@ -119,6 +119,7 @@ class Schedule(db.Model):
     is_split_shift = db.Column(db.Boolean, default=False)
     split_start_time = db.Column(db.Time)
     split_end_time = db.Column(db.Time)
+    is_open_time = db.Column(db.Boolean, default=False)
 
     user = db.relationship("User", back_populates="schedules")
 

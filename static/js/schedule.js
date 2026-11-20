@@ -175,13 +175,17 @@ function updateModalWorkloadValidation() {
     let weeklyTotal = 0;
     const dayDeviations = [];
 
-    const updateBox = (dayId, boxId, hours, label) => {
+    const updateBox = (dayId, boxId, hours, label, isOpen = false) => {
         const textEl = document.getElementById(`val${dayId}Day`);
         const boxEl = document.getElementById(boxId);
-        if (textEl) textEl.textContent = hours.toFixed(1);
+        if (textEl) {
+            textEl.textContent = isOpen ? 'Open' : `${hours.toFixed(1)}h`;
+        }
         if (boxEl) {
             boxEl.className = 'p-2 rounded border';
-            if (Math.abs(hours - targetDaily) < 0.05) {
+            if (isOpen) {
+                boxEl.classList.add('bg-info-subtle', 'border-info-subtle', 'text-info-emphasis');
+            } else if (Math.abs(hours - targetDaily) < 0.05) {
                 boxEl.classList.add('bg-success-subtle', 'border-success-subtle', 'text-success');
             } else if (hours > 0) {
                 boxEl.classList.add('bg-warning-subtle', 'border-warning-subtle', 'text-warning');
@@ -189,7 +193,7 @@ function updateModalWorkloadValidation() {
                 boxEl.classList.add('bg-white', 'text-muted');
             }
         }
-        if (Math.abs(hours - targetDaily) >= 0.05) {
+        if (!isOpen && Math.abs(hours - targetDaily) >= 0.05) {
             dayDeviations.push(`${label}: ${hours.toFixed(1)}h`);
         }
     };
@@ -198,27 +202,32 @@ function updateModalWorkloadValidation() {
         // --- Block Mode ---
         const blocks = ['mw', 'tth', 'fri', 'sat'];
         const dayTotals = { mw: 0, tth: 0, fri: 0, sat: 0 };
+        const openBlocks = {};
 
         blocks.forEach(block => {
-            const startVal = document.getElementById(`${block}In`)?.value;
-            const endVal = document.getElementById(`${block}Out`)?.value;
-            dayTotals[block] += calculateShiftHours(startVal, endVal);
+            const isOpen = document.getElementById(`${block}Open`)?.checked || false;
+            openBlocks[block] = isOpen;
+            if (!isOpen) {
+                const startVal = document.getElementById(`${block}In`)?.value;
+                const endVal = document.getElementById(`${block}Out`)?.value;
+                dayTotals[block] += calculateShiftHours(startVal, endVal);
+            }
         });
 
         document.querySelectorAll('#brokenScheduleContainer .broken-schedule-item').forEach(item => {
             const day = item.querySelector('.broken-day')?.value;
             const inputs = item.querySelectorAll('input[type="time"]');
-            if (day && dayTotals[day] !== undefined && inputs[0]?.value && inputs[1]?.value) {
+            if (day && dayTotals[day] !== undefined && !openBlocks[day] && inputs[0]?.value && inputs[1]?.value) {
                 dayTotals[day] += calculateShiftHours(inputs[0].value, inputs[1].value);
             }
         });
 
         weeklyTotal = (dayTotals.mw * 2) + (dayTotals.tth * 2) + (dayTotals.fri * 1) + (dayTotals.sat * 1);
 
-        updateBox('Mw', 'valBoxMw', dayTotals.mw, 'MW');
-        updateBox('Tth', 'valBoxTth', dayTotals.tth, 'TTh');
-        updateBox('Fri', 'valBoxFri', dayTotals.fri, 'Fri');
-        updateBox('Sat', 'valBoxSat', dayTotals.sat, 'Sat');
+        updateBox('Mw', 'valBoxMw', dayTotals.mw, 'MW', openBlocks.mw);
+        updateBox('Tth', 'valBoxTth', dayTotals.tth, 'TTh', openBlocks.tth);
+        updateBox('Fri', 'valBoxFri', dayTotals.fri, 'Fri', openBlocks.fri);
+        updateBox('Sat', 'valBoxSat', dayTotals.sat, 'Sat', openBlocks.sat);
     } else {
         // --- Daily Mode (Mon-Sat) ---
         const days = ['mon', 'tue', 'wed', 'thu', 'dailyFri', 'dailySat'];
@@ -231,30 +240,35 @@ function updateModalWorkloadValidation() {
             dailySat: 'sat'
         };
         const dayTotals = { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
+        const openDays = {};
 
         days.forEach(d => {
-            const startVal = document.getElementById(`${d}In`)?.value;
-            const endVal = document.getElementById(`${d}Out`)?.value;
             const targetKey = dayKeyMap[d];
-            dayTotals[targetKey] += calculateShiftHours(startVal, endVal);
+            const isOpen = document.getElementById(`${d}Open`)?.checked || false;
+            openDays[targetKey] = isOpen;
+            if (!isOpen) {
+                const startVal = document.getElementById(`${d}In`)?.value;
+                const endVal = document.getElementById(`${d}Out`)?.value;
+                dayTotals[targetKey] += calculateShiftHours(startVal, endVal);
+            }
         });
 
         document.querySelectorAll('#brokenScheduleContainer .broken-schedule-item').forEach(item => {
             const day = item.querySelector('.broken-day')?.value;
             const inputs = item.querySelectorAll('input[type="time"]');
-            if (day && dayTotals[day] !== undefined && inputs[0]?.value && inputs[1]?.value) {
+            if (day && dayTotals[day] !== undefined && !openDays[day] && inputs[0]?.value && inputs[1]?.value) {
                 dayTotals[day] += calculateShiftHours(inputs[0].value, inputs[1].value);
             }
         });
 
         weeklyTotal = dayTotals.mon + dayTotals.tue + dayTotals.wed + dayTotals.thu + dayTotals.fri + dayTotals.sat;
 
-        updateBox('Mon', 'valBoxMon', dayTotals.mon, 'Mon');
-        updateBox('Tue', 'valBoxTue', dayTotals.tue, 'Tue');
-        updateBox('Wed', 'valBoxWed', dayTotals.wed, 'Wed');
-        updateBox('Thu', 'valBoxThu', dayTotals.thu, 'Thu');
-        updateBox('DailyFri', 'valBoxDailyFri', dayTotals.fri, 'Fri');
-        updateBox('DailySat', 'valBoxDailySat', dayTotals.sat, 'Sat');
+        updateBox('Mon', 'valBoxMon', dayTotals.mon, 'Mon', openDays.mon);
+        updateBox('Tue', 'valBoxTue', dayTotals.tue, 'Tue', openDays.tue);
+        updateBox('Wed', 'valBoxWed', dayTotals.wed, 'Wed', openDays.wed);
+        updateBox('Thu', 'valBoxThu', dayTotals.thu, 'Thu', openDays.thu);
+        updateBox('DailyFri', 'valBoxDailyFri', dayTotals.fri, 'Fri', openDays.fri);
+        updateBox('DailySat', 'valBoxDailySat', dayTotals.sat, 'Sat', openDays.sat);
     }
 
     // Weekly Total Badge
@@ -430,6 +444,7 @@ async function loadSchedules() {
                 // Standard block rendering: MW, TTh, Fri, Sat
                 blocks.forEach(block => {
                     const s = userSchedMap[block];
+                    const isOpen = Boolean(s && s.is_open_time);
                     const hasPrimary = Boolean(s && s.start_time && s.end_time);
                     const hasSplit = Boolean(s && (s.is_split_shift || (s.split_start_time && s.split_end_time)) && s.split_start_time && s.split_end_time);
 
@@ -438,7 +453,14 @@ async function loadSchedules() {
                     userWeeklyHours += dailyHours * multiplier;
 
                     let cellContent = '';
-                    if (!hasPrimary && !hasSplit) {
+                    if (isOpen) {
+                        cellContent = `
+                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle py-1 px-2" title="Flexible Open Time / Office Hours Fallback">
+                                <i class="bi bi-unlock-fill me-1"></i>Open Time
+                            </span>
+                            <div class="text-muted small mt-1" style="font-size: 0.7rem;">OJT / Flex</div>
+                        `;
+                    } else if (!hasPrimary && !hasSplit) {
                         cellContent = '<span class="text-muted small">-</span>';
                     } else {
                         if (hasPrimary) {
@@ -470,6 +492,9 @@ async function loadSchedules() {
                 // Custom daily rendering within the 4 columns
                 // 1. Mon & Wed (MW column)
                 const renderSubDay = (label, s) => {
+                    if (s && s.is_open_time) {
+                        return `<div class="small"><span class="fw-semibold text-dark">${label}:</span> <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle py-0 px-1 font-mono" style="font-size: 0.7rem;">Open Time</span></div>`;
+                    }
                     if (!s || (!s.start_time && !s.split_start_time)) {
                         return `<div class="text-muted small">${label}: Off</div>`;
                     }
@@ -585,10 +610,18 @@ function setupQuickShifts() {
         const block = btn.getAttribute('data-block');
         const inEl = document.getElementById(`${block}In`);
         const outEl = document.getElementById(`${block}Out`);
+        const openEl = document.getElementById(`${block}Open`);
+        const quickRow = document.getElementById(`${block}QuickShiftsRow`);
 
         if (inEl && outEl) {
             inEl.value = '';
+            inEl.disabled = false;
             outEl.value = '';
+            outEl.disabled = false;
+            if (openEl) openEl.checked = false;
+            if (quickRow) {
+                quickRow.querySelectorAll('button').forEach(b => b.disabled = false);
+            }
             updateModalWorkloadValidation();
         }
     });
@@ -628,6 +661,24 @@ function setupModal() {
             outEl.addEventListener('input', updateModalWorkloadValidation);
             outEl.addEventListener('change', updateModalWorkloadValidation);
         }
+    });
+
+    // Open Time toggle listener (disables inputs and excludes day from standard weekly totals)
+    document.querySelectorAll('.open-time-check').forEach(check => {
+        check.addEventListener('change', function () {
+            const block = this.dataset.block;
+            const inEl = document.getElementById(`${block}In`);
+            const outEl = document.getElementById(`${block}Out`);
+            const quickRow = document.getElementById(`${block}QuickShiftsRow`);
+            const isChecked = this.checked;
+
+            if (inEl) inEl.disabled = isChecked;
+            if (outEl) outEl.disabled = isChecked;
+            if (quickRow) {
+                quickRow.querySelectorAll('button').forEach(btn => btn.disabled = isChecked);
+            }
+            updateModalWorkloadValidation();
+        });
     });
 
     // Schedule Mode Switch Listener (Block vs Custom Daily)
@@ -673,7 +724,8 @@ function setupModal() {
                 schedules = ['mw', 'tth', 'fri', 'sat'].map(block => ({
                     day: block,
                     start_time: document.getElementById(`${block}In`)?.value || null,
-                    end_time: document.getElementById(`${block}Out`)?.value || null
+                    end_time: document.getElementById(`${block}Out`)?.value || null,
+                    is_open_time: document.getElementById(`${block}Open`)?.checked || false
                 }));
             } else {
                 const dailyInputs = [
@@ -687,7 +739,8 @@ function setupModal() {
                 schedules = dailyInputs.map(item => ({
                     day: item.day,
                     start_time: document.getElementById(`${item.id}In`)?.value || null,
-                    end_time: document.getElementById(`${item.id}Out`)?.value || null
+                    end_time: document.getElementById(`${item.id}Out`)?.value || null,
+                    is_open_time: document.getElementById(`${item.id}Open`)?.checked || false
                 }));
             }
 
@@ -828,8 +881,20 @@ document.addEventListener('click', e => {
             ['mw', 'tth', 'fri', 'sat', 'mon', 'tue', 'wed', 'thu', 'dailyFri', 'dailySat'].forEach(id => {
                 const inEl = document.getElementById(`${id}In`);
                 const outEl = document.getElementById(`${id}Out`);
-                if (inEl) inEl.value = '';
-                if (outEl) outEl.value = '';
+                const openEl = document.getElementById(`${id}Open`);
+                const quickRow = document.getElementById(`${id}QuickShiftsRow`);
+                if (inEl) {
+                    inEl.value = '';
+                    inEl.disabled = false;
+                }
+                if (outEl) {
+                    outEl.value = '';
+                    outEl.disabled = false;
+                }
+                if (openEl) openEl.checked = false;
+                if (quickRow) {
+                    quickRow.querySelectorAll('button').forEach(btn => btn.disabled = false);
+                }
             });
 
             // Populate Main Inputs with existing values from database
@@ -842,9 +907,21 @@ document.addEventListener('click', e => {
                 inputIds.forEach(id => {
                     const inEl = document.getElementById(`${id}In`);
                     const outEl = document.getElementById(`${id}Out`);
-                    if (inEl && outEl) {
-                        inEl.value = s.start_time || '';
-                        outEl.value = s.end_time || '';
+                    const openEl = document.getElementById(`${id}Open`);
+                    const quickRow = document.getElementById(`${id}QuickShiftsRow`);
+
+                    if (openEl && s.is_open_time) {
+                        openEl.checked = true;
+                        if (inEl) inEl.disabled = true;
+                        if (outEl) outEl.disabled = true;
+                        if (quickRow) {
+                            quickRow.querySelectorAll('button').forEach(btn => btn.disabled = true);
+                        }
+                    } else {
+                        if (inEl && outEl) {
+                            inEl.value = s.start_time || '';
+                            outEl.value = s.end_time || '';
+                        }
                     }
                 });
             });

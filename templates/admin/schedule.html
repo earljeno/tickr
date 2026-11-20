@@ -197,7 +197,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Monday & Wednesday (MW)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="mw" title="Clear MW" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="mwOpen" data-block="mw">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="mwOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="mwTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="mwIn" min="07:30" max="20:30">
@@ -207,7 +213,7 @@
                                             <input type="time" class="form-control form-control-sm" id="mwOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="mwQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mw" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
@@ -224,7 +230,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Tuesday & Thursday (TTh)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="tth" title="Clear TTh" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="tthOpen" data-block="tth">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="tthOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="tthTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="tthIn" min="07:30" max="20:30">
@@ -234,7 +246,7 @@
                                             <input type="time" class="form-control form-control-sm" id="tthOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="tthQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tth" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
@@ -251,7 +263,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Friday (Fri)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="fri" title="Clear Friday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="friOpen" data-block="fri">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="friOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="friTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="friIn" min="07:30" max="20:30">
@@ -261,7 +279,7 @@
                                             <input type="time" class="form-control form-control-sm" id="friOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="friQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="fri" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
@@ -278,7 +296,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Saturday (Sat)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="sat" title="Clear Saturday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="satOpen" data-block="sat">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="satOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="satTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="satIn" min="07:30" max="20:30">
@@ -288,7 +312,7 @@
                                             <input type="time" class="form-control form-control-sm" id="satOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="satQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="sat" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
@@ -314,7 +338,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Monday (Mon)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="mon" title="Clear Monday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="monOpen" data-block="mon">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="monOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="monTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="monIn" min="07:30" max="20:30">
@@ -324,7 +354,7 @@
                                             <input type="time" class="form-control form-control-sm" id="monOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="monQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mon" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mon" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="mon" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
@@ -341,7 +371,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Tuesday (Tue)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="tue" title="Clear Tuesday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="tueOpen" data-block="tue">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="tueOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="tueTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="tueIn" min="07:30" max="20:30">
@@ -351,7 +387,7 @@
                                             <input type="time" class="form-control form-control-sm" id="tueOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="tueQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tue" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tue" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="tue" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
@@ -368,7 +404,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Wednesday (Wed)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="wed" title="Clear Wednesday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="wedOpen" data-block="wed">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="wedOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="wedTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="wedIn" min="07:30" max="20:30">
@@ -378,7 +420,7 @@
                                             <input type="time" class="form-control form-control-sm" id="wedOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="wedQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="wed" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="wed" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="wed" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
@@ -395,7 +437,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Thursday (Thu)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="thu" title="Clear Thursday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="thuOpen" data-block="thu">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="thuOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="thuTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="thuIn" min="07:30" max="20:30">
@@ -405,7 +453,7 @@
                                             <input type="time" class="form-control form-control-sm" id="thuOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="thuQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="thu" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="thu" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="thu" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
@@ -422,7 +470,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Friday (Fri)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="dailyFri" title="Clear Friday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="dailyFriOpen" data-block="dailyFri">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="dailyFriOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="dailyFriTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="dailyFriIn" min="07:30" max="20:30">
@@ -432,7 +486,7 @@
                                             <input type="time" class="form-control form-control-sm" id="dailyFriOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="dailyFriQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailyFri" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailyFri" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailyFri" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>
@@ -449,7 +503,13 @@
                                         <label class="form-label fw-bold text-dark mb-0">Saturday (Sat)</label>
                                         <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none clear-block-btn" data-block="dailySat" title="Clear Saturday" style="font-size: 0.75rem;">Clear</button>
                                     </div>
-                                    <div class="row g-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input open-time-check" type="checkbox" id="dailySatOpen" data-block="dailySat">
+                                        <label class="form-check-label small fw-semibold text-secondary" for="dailySatOpen">
+                                            Open Time <span class="fw-normal text-muted" style="font-size: 0.75rem;">(OJT / Office hours fallback)</span>
+                                        </label>
+                                    </div>
+                                    <div class="row g-2" id="dailySatTimeInputsRow">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1">Start Time</small>
                                             <input type="time" class="form-control form-control-sm" id="dailySatIn" min="07:30" max="20:30">
@@ -459,7 +519,7 @@
                                             <input type="time" class="form-control form-control-sm" id="dailySatOut" min="07:30" max="20:30">
                                         </div>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <div class="d-flex flex-wrap gap-1 mt-2" id="dailySatQuickShiftsRow">
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailySat" data-start="07:30" data-end="11:30" style="font-size: 0.7rem;">7:30-11:30</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailySat" data-start="08:00" data-end="12:00" style="font-size: 0.7rem;">8:00-12:00</button>
                                         <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 quick-shift-btn" data-block="dailySat" data-start="12:30" data-end="16:30" style="font-size: 0.7rem;">12:30-4:30</button>

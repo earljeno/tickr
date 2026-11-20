@@ -238,6 +238,9 @@ async function loadRecords() {
 
         // Attendance Inconsistencies / Flags Summary
         const flagsSummaryText = document.getElementById('flagsSummaryText');
+        const viewFlagsBtn = document.getElementById('viewFlagsBtn');
+        const inconsistencies = summary.inconsistencies || [];
+
         if (flagsSummaryText) {
             const flags = summary.flags || {};
             const totalFlags = (flags.late || 0) + (flags.early_out || 0) + (flags.overtime || 0);
@@ -247,10 +250,15 @@ async function loadRecords() {
                 if (flags.early_out) parts.push(`${flags.early_out} early`);
                 if (flags.overtime) parts.push(`${flags.overtime} OT`);
                 flagsSummaryText.innerHTML = `<span class="text-warning-emphasis fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>${totalFlags} flag(s) (${parts.join(', ')})</span>`;
+                if (viewFlagsBtn) viewFlagsBtn.classList.remove('d-none');
             } else {
                 flagsSummaryText.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>No flags recorded</span>`;
+                if (viewFlagsBtn) viewFlagsBtn.classList.add('d-none');
             }
         }
+
+        // Render Flags in Modal
+        renderFlagsModal(inconsistencies);
 
         // Update Trend Month Badge
         if (trendMonthBadge && month) {
@@ -309,6 +317,38 @@ function renderActivityTable(records) {
             <td class="text-center font-mono">${escapeHtml(record.clock_in ? record.clock_in.toUpperCase() : '-')}</td>
             <td class="text-center font-mono">${escapeHtml(record.clock_out ? record.clock_out.toUpperCase() : '-')}</td>
             <td class="text-center font-mono fw-bold">${parseFloat(record.total_hours || 0).toFixed(2)} hrs</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderFlagsModal(inconsistencies) {
+    const tbody = document.getElementById('flagsModalTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!inconsistencies || inconsistencies.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4"><i class="bi bi-check-circle text-success me-1"></i>No flags recorded for this month.</td></tr>`;
+        return;
+    }
+
+    inconsistencies.forEach(flag => {
+        const tr = document.createElement('tr');
+        let badgeClass = 'bg-danger-subtle text-danger border border-danger-subtle';
+        if (flag.issue_type === 'Late') {
+            badgeClass = 'bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+        } else if (flag.issue_type === 'Early Out') {
+            badgeClass = 'bg-danger-subtle text-danger border border-danger-subtle';
+        } else if (flag.issue_type === 'Overtime') {
+            badgeClass = 'bg-info-subtle text-info-emphasis border border-info-subtle';
+        }
+
+        tr.innerHTML = `
+            <td class="ps-3 font-mono fw-medium text-dark">${escapeHtml(flag.date)}</td>
+            <td class="text-center">
+                <span class="badge ${badgeClass} fw-semibold">${escapeHtml(flag.issue_type)}</span>
+            </td>
+            <td class="text-muted small">${escapeHtml(flag.details)}</td>
         `;
         tbody.appendChild(tr);
     });

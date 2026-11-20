@@ -129,12 +129,21 @@
             </div>
 
             <!-- Active Duty Days & Punctuality -->
-            <div class="stat-card indigo">
+            <div class="stat-card indigo position-relative" id="flagsStatCard">
                 <div class="stat-icon-wrapper">
                     <i class="bi bi-calendar-check-fill"></i>
                 </div>
                 <div class="stat-info">
-                    <div class="stat-label">Active Days & Flags</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="stat-label">Active Days & Flags</div>
+                        <button class="btn btn-sm btn-link p-0 text-decoration-none text-primary d-none" 
+                                id="viewFlagsBtn" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#flagsModal"
+                                aria-label="View recorded flags">
+                            <small class="fw-semibold"><i class="bi bi-info-circle me-1"></i>View Flags</small>
+                        </button>
+                    </div>
                     <div class="stat-value-group">
                         <span class="stat-number" id="summaryActiveDays">0</span>
                         <span class="stat-unit">days</span>
@@ -257,6 +266,47 @@
                             <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                             Loading schedule...
                         </div>
+                    </div>
+
+                    <button class="btn btn-secondary px-4 py-2 fw-semibold w-100" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flags / Inconsistencies Modal -->
+    <div class="modal fade" id="flagsModal" tabindex="-1" aria-labelledby="flagsModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content custom-kiosk-modal">
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="modal-icon-badge warning" style="background-color: var(--status-warning-bg); color: var(--status-warning-text); box-shadow: 0 0 0 4px #fef3c7;">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                        </div>
+                        <h5 class="fw-bold mb-1" id="flagsModalTitle">Recorded Attendance Flags</h5>
+                        <p class="text-muted small mb-0">Review schedule deviations and flag reasons recorded for this month</p>
+                    </div>
+
+                    <div class="table-responsive rounded-3 border mb-3">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3 font-mono text-uppercase small text-muted">Date</th>
+                                    <th class="text-center font-mono text-uppercase small text-muted">Issue</th>
+                                    <th class="font-mono text-uppercase small text-muted">Details & Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flagsModalTableBody">
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">No flags recorded.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-light border small text-muted d-flex align-items-center mb-4">
+                        <i class="bi bi-info-circle-fill text-primary me-2 fs-6"></i>
+                        <span>Flags are generated automatically based on your assigned shift schedule and grace period rules. If you believe a flag is an error, please coordinate with your lab supervisor.</span>
                     </div>
 
                     <button class="btn btn-secondary px-4 py-2 fw-semibold w-100" data-bs-dismiss="modal">Close</button>
