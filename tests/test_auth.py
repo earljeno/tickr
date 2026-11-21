@@ -27,6 +27,17 @@ def test_admin_login_success(client):
     assert "/admin/dashboard" in data["redirect"]
 
 
+def test_admin_login_remember_me(client):
+    res = client.post(
+        "/auth/login",
+        json={"adminId": "admin1", "password": "admin123", "remember": True},
+    )
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["success"] is True
+    assert "/admin/dashboard" in data["redirect"]
+
+
 def test_admin_login_wrong_password(client):
     res = client.post(
         "/auth/login",

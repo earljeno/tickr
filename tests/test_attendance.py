@@ -81,13 +81,29 @@ def test_manual_log_add_and_update(admin_client):
     assert len(logs) >= 1
     log_id = logs[0]["log_id"]
 
-    # Update log
+    # Update log with clockOut
     update_res = admin_client.post(
         f"/api/update-log/{log_id}",
         json={"clockIn": "08:30", "clockOut": "17:30"},
     )
     assert update_res.status_code == 200
     assert update_res.get_json()["success"] is True
+
+    # Update log with optional/null clockOut
+    update_res_no_out = admin_client.post(
+        f"/api/update-log/{log_id}",
+        json={"clockIn": "08:30", "clockOut": ""},
+    )
+    assert update_res_no_out.status_code == 200
+    assert update_res_no_out.get_json()["success"] is True
+
+    # Add manual log without clockOut (optional)
+    add_no_out_res = admin_client.post(
+        "/api/add-log",
+        json={"userId": "2024001", "date": "2026-11-02", "clockIn": "09:00", "clockOut": ""},
+    )
+    assert add_no_out_res.status_code == 200
+    assert add_no_out_res.get_json()["success"] is True
 
 
 def test_settings_api(admin_client):

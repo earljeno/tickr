@@ -146,7 +146,7 @@ tbody.addEventListener('click', e => {
         })
             .then(res => res.json())
             .then(data => {
-                this.innerHTML = 'Save Changes';
+                this.innerHTML = '<i class="bi bi-save"></i> Save Changes';
                 this.disabled = false;
 
                 if (data.success) {
@@ -156,13 +156,14 @@ tbody.addEventListener('click', e => {
                     loadLogs();
                     filterLogs();
                 } else {
+                    showAlert('error', data.error || 'Failed to update attendance record');
                     console.error('Error updating user:', data.error);
                 }
             })
             .catch(err => {
-                this.innerHTML = 'Save Changes';
+                this.innerHTML = '<i class="bi bi-save"></i> Save Changes';
                 this.disabled = false;
-                showAlert('error', err);
+                showAlert('error', err.message || err);
                 console.error('Fetch error:', err);
             });
 
@@ -507,20 +508,25 @@ saveManualLogBtn.addEventListener('click', function () {
                 if (data.success) {
                     loadLogs();
 
-                    this.innerHTML = 'Add Manual Log';
+                    this.innerHTML = '<i class="bi bi-check-lg"></i> Record Entry';
                     this.disabled = false;
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addManualLogModal'));
                     modal.hide();
                     form.reset();
+                    showAlert('success', data.message || 'New manual log added successfully');
                     console.log('New manual log added successfully');
                     
                 } else {
-                    console.error('Error updating user:', data.error);
+                    this.innerHTML = '<i class="bi bi-check-lg"></i> Record Entry';
+                    this.disabled = false;
+                    showAlert('error', data.error || 'Failed to add manual log');
+                    console.error('Error adding manual log:', data.error);
                 }
             })
             .catch(err => {
-                this.innerHTML = 'Save Changes';
+                this.innerHTML = '<i class="bi bi-check-lg"></i> Record Entry';
                 this.disabled = false;
+                showAlert('error', err.message || err);
                 console.error('Fetch error:', err);
             });
     } else {

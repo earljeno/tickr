@@ -758,18 +758,22 @@ def get_user_log(log_id):
 @admin_required
 def update_log(log_id):
     data = request.get_json(silent=True)
-    if not data or not data.get("clockIn") or not data.get("clockOut"):
-        return jsonify({"success": False, "error": "Both clockIn and clockOut are required"}), 400
+    if not data or not data.get("clockIn"):
+        return jsonify({"success": False, "error": "clockIn is required"}), 400
 
     log = db.session.get(Attendance, log_id)
     if not log:
         return jsonify({"success": False, "error": "Log record not found"}), 404
 
     clock_in_time = parse_time(data.get("clockIn"))
-    clock_out_time = parse_time(data.get("clockOut"))
+    clock_out_raw = data.get("clockOut")
+    clock_out_time = parse_time(clock_out_raw) if clock_out_raw else None
 
-    if not clock_in_time or not clock_out_time:
-        return jsonify({"success": False, "error": "Invalid time format (expected HH:MM)"}), 400
+    if not clock_in_time:
+        return jsonify({"success": False, "error": "Invalid clockIn time format (expected HH:MM)"}), 400
+
+    if clock_out_raw and not clock_out_time:
+        return jsonify({"success": False, "error": "Invalid clockOut time format (expected HH:MM)"}), 400
 
     log.clock_in = clock_in_time
     log.clock_out = clock_out_time

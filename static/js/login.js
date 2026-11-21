@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const adminInput = document.getElementById('adminId');
     const adminPass = document.getElementById('adminPassword');
+    const adminRemember = document.getElementById('adminRemember');
     const adminError = document.getElementById('adminError');
 
     const toAdminBtn = document.getElementById('toAdminBtn');
@@ -154,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const adminId = adminInput?.value.trim();
         const password = adminPass?.value;
+        const remember = Boolean(adminRemember?.checked);
         if (!adminId || !password) return;
 
         const submitBtn = adminForm.querySelector('button[type="submit"]');
@@ -167,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminId, password }),
+                body: JSON.stringify({ adminId, password, remember }),
             });
 
             const data = await res.json();

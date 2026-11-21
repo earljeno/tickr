@@ -41,6 +41,7 @@ def login():
     gia_id = data.get("giaId")
     admin_id = data.get("adminId")
     password = data.get("password")
+    remember = bool(data.get("remember", False))
 
     # --- Input validation ---
     if not gia_id and not admin_id:
@@ -62,7 +63,7 @@ def login():
             return jsonify({"success": False, "error": "The account is no longer active."}), 403
 
         update_strict_mode()
-        login_user(user, remember=True)
+        login_user(user, remember=False)
 
         system_log_entry(
             action="Login",
@@ -100,7 +101,7 @@ def login():
             return jsonify({"success": False, "error": "The account is no longer active."}), 403
 
         update_strict_mode()
-        login_user(user, remember=True)
+        login_user(user, remember=remember)
 
         system_log_entry(
             action="Login",
