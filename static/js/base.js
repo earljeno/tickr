@@ -143,8 +143,14 @@ function escapeHtml(str) {
 
 /**
  * Dispatches a high-contrast, accessible toast notification at the top right of the viewport.
+ * Supports types: 'success', 'error', 'danger', 'warning', 'info'
  */
 function showAlert(type, message) {
+    if (!message && message !== 0) return;
+
+    // Normalize type string
+    const normType = String(type || '').toLowerCase();
+
     // Check if toast container exists, if not create one
     let container = document.getElementById("tickrToastContainer");
     if (!container) {
@@ -155,9 +161,25 @@ function showAlert(type, message) {
         document.body.appendChild(container);
     }
 
-    const isSuccess = type === "success";
-    const bgClass = isSuccess ? "bg-success text-white" : "bg-danger text-white";
-    const iconClass = isSuccess ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill";
+    let bgClass = "bg-primary text-white";
+    let iconClass = "bi-info-circle-fill";
+    let closeBtnClass = "btn-close-white";
+
+    if (normType === "success") {
+        bgClass = "bg-success text-white";
+        iconClass = "bi-check-circle-fill";
+    } else if (normType === "error" || normType === "danger") {
+        bgClass = "bg-danger text-white";
+        iconClass = "bi-exclamation-triangle-fill";
+    } else if (normType === "warning") {
+        bgClass = "bg-warning text-dark";
+        iconClass = "bi-exclamation-circle-fill";
+        closeBtnClass = "";
+    } else if (normType === "info") {
+        bgClass = "bg-info text-dark";
+        iconClass = "bi-info-circle-fill";
+        closeBtnClass = "";
+    }
 
     const toastEl = document.createElement("div");
     toastEl.className = `toast align-items-center ${bgClass} border-0 shadow-lg`;
@@ -165,19 +187,26 @@ function showAlert(type, message) {
     toastEl.setAttribute("aria-live", "assertive");
     toastEl.setAttribute("aria-atomic", "true");
 
+    const safeMessage = typeof escapeHtml === "function" ? escapeHtml(String(message)) : String(message);
+
     toastEl.innerHTML = `
         <div class="d-flex p-2">
             <div class="toast-body d-flex align-items-center gap-2">
                 <i class="bi ${iconClass} fs-5"></i>
-                <span class="fw-medium">${escapeHtml(message)}</span>
+                <span class="fw-medium">${safeMessage}</span>
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            <button type="button" class="btn-close ${closeBtnClass} me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
 
     container.appendChild(toastEl);
-    const toast = new bootstrap.Toast(toastEl, { delay: 4500 });
-    toast.show();
+    if (window.bootstrap && bootstrap.Toast) {
+        const toast = new bootstrap.Toast(toastEl, { delay: 4500 });
+        toast.show();
+    } else {
+        toastEl.classList.add("show");
+        setTimeout(() => toastEl.remove(), 4500);
+    }
 
     toastEl.addEventListener("hidden.bs.toast", () => {
         toastEl.remove();

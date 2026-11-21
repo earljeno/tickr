@@ -216,22 +216,6 @@ function changePassword() {
     });
 }
 
-function showAlert(type, message) {
-    const alertElement = document.getElementById('successAlert');
-    alertElement.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
-    alertElement.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    alertElement.style.display = 'block';
-    
-    setTimeout(() => {
-        // Simple hide logic
-        alertElement.style.display = 'none';
-    }, 4000);
-}
-
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     initProfile();
