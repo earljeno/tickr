@@ -201,14 +201,23 @@ function showAlert(type, message) {
 
     container.appendChild(toastEl);
     if (window.bootstrap && bootstrap.Toast) {
-        const toast = new bootstrap.Toast(toastEl, { delay: 4500 });
+        const toast = new bootstrap.Toast(toastEl, { delay: 4500, autohide: true });
         toast.show();
-    } else {
-        toastEl.classList.add("show");
-        setTimeout(() => toastEl.remove(), 4500);
+
+        toastEl.addEventListener("hidden.bs.toast", () => {
+            toastEl.remove();
+        });
     }
 
-    toastEl.addEventListener("hidden.bs.toast", () => {
-        toastEl.remove();
-    });
+    // Fallback auto-dismiss timer in case hidden.bs.toast event doesn't fire
+    setTimeout(() => {
+        if (toastEl && toastEl.parentElement) {
+            toastEl.classList.remove("show");
+            setTimeout(() => {
+                if (toastEl && toastEl.parentElement) {
+                    toastEl.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
 }

@@ -2,178 +2,241 @@ function initDailyLogs() {
     setupSearch();
     setupFilters();
     setupAutoRefresh();
-    setupTableInteractions();
-    addInteractiveEffects();
+    setupModalsAndActions();
     updateLastUpdated();
 }
 
-function loadLogs() {
-    dateFilter = document.getElementById("dateFilter").value
+function loadLogs(isBackground = false) {
+    const dateInput = document.getElementById("dateFilter");
+    const dateFilter = dateInput ? dateInput.value : '';
 
-    const tbody = document.getElementById('logsTableBody');
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center py-5 text-muted">
-                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                    Loading daily attendance records...
-                </td>
-            </tr>
-        `;
+    const queryDisplay = document.getElementById("queryDateDisplay");
+    if (queryDisplay && dateFilter) {
+        queryDisplay.textContent = dateFilter;
     }
 
-    fetch(`/api/get-daily-logs?today=${dateFilter}`)
+    const tbody = document.getElementById('logsTableBody');
+    const tableContainer = tbody ? tbody.closest('.table-responsive') : null;
+    const hasExistingRows = tbody && tbody.querySelectorAll('tr').length > 0 && !tbody.querySelector('.spinner-border');
+
+    if (tableContainer) {
+        tableContainer.classList.add('table-loading-container');
+    }
+
+    if (isBackground && hasExistingRows) {
+        // Subtle non-intrusive refresh without wiping current rows
+        if (tableContainer) {
+            tableContainer.classList.add('is-loading-data');
+            let overlay = tableContainer.querySelector('.table-loading-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'table-loading-overlay';
+                overlay.innerHTML = `
+                    <div class="table-loading-badge">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span>Updating daily logs...</span>
+                    </div>
+                `;
+                tableContainer.appendChild(overlay);
+            }
+        }
+    } else {
+        // Initial / explicit full load: show spinner inside tbody
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                        Loading daily attendance records...
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    fetch(`/api/get-daily-logs?today=${encodeURIComponent(dateFilter)}`)
         .then(res => {
-            if (!res.ok) showAlert('error', res.status);
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
             return res.json();
         })
         .then(logs => {
-            if (tbody) tbody.innerHTML = '';
+            if (!tbody) return;
+            tbody.innerHTML = '';
 
-            logs.forEach(record => {
-                const tr = document.createElement("tr");
-                const safeInitial = typeof escapeHtml === 'function' ? escapeHtml(record.name_initial) : record.name_initial;
-                const safeName = typeof escapeHtml === 'function' ? escapeHtml(record.full_name) : record.full_name;
-                const safeUserId = typeof escapeHtml === 'function' ? escapeHtml(record.user_id) : record.user_id;
-                const safeClockIn = typeof escapeHtml === 'function' ? escapeHtml(record.clock_in) : record.clock_in;
-                const safeClockOut = typeof escapeHtml === 'function' ? escapeHtml(record.clock_out) : record.clock_out;
-                const safeHours = typeof escapeHtml === 'function' ? escapeHtml(record.total_hours) : record.total_hours;
-                const safeLogId = typeof escapeHtml === 'function' ? escapeHtml(record.log_id) : record.log_id;
-
-                tr.innerHTML = `
-                        <td class="ps-4">
-                            <div class="d-flex align-items-center">
-                                <div class="user-avatar me-3">${safeInitial}</div>
-                                <div>
-                                    <div class="user-name">${safeName}</div>
-                                    <div class="user-email">${safeUserId}</div>
+            if (!logs || logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr class="empty-state-row">
+                        <td colspan="5" class="text-center py-5">
+                            <div class="d-flex flex-column align-items-center justify-content-center text-muted">
+                                <div class="stat-icon total-icon mb-3" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                                    <i class="bi bi-calendar-x"></i>
                                 </div>
+                                <h6 class="fw-semibold text-dark mb-1">No attendance records found</h6>
+                                <p class="small mb-0 text-secondary">No student assistants have clocked in for ${escapeHtml(dateFilter || 'selected date')}.</p>
                             </div>
                         </td>
-                        <td>
-                            <div class="time-log">
-                                <div class="time-display text-center">${safeClockIn}</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="time-log">
-                                <div class="time-display text-center">${safeClockOut}</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="total-hours">
-                                <div class="hours-display text-center">${safeHours} hrs</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons d-flex justify-content-center">
-                                <button class="btn btn-sm btn-outline-primary" data-log-id="${safeLogId}" title="View Details" hidden>
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-warning" data-log-id="${safeLogId}" title="Edit Log">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
+                    </tr>
+                `;
+            } else {
+                logs.forEach(record => {
+                    const tr = document.createElement("tr");
+                    const safeInitial = typeof escapeHtml === 'function' ? escapeHtml(record.name_initial) : record.name_initial;
+                    const safeName = typeof escapeHtml === 'function' ? escapeHtml(record.full_name) : record.full_name;
+                    const safeUserId = typeof escapeHtml === 'function' ? escapeHtml(record.user_id) : record.user_id;
+                    const safeClockIn = typeof escapeHtml === 'function' ? escapeHtml(record.clock_in) : record.clock_in;
+                    const safeClockOut = typeof escapeHtml === 'function' ? escapeHtml(record.clock_out) : record.clock_out;
+                    const safeHours = typeof escapeHtml === 'function' ? escapeHtml(record.total_hours) : record.total_hours;
+                    const safeLogId = typeof escapeHtml === 'function' ? escapeHtml(record.log_id) : record.log_id;
 
-                tbody.appendChild(tr);
-            })
+                    tr.innerHTML = `
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-3">${safeInitial}</div>
+                                    <div>
+                                        <div class="user-name">${safeName}</div>
+                                        <div class="user-email">${safeUserId}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="time-log">
+                                    <div class="time-display text-center">${safeClockIn || '<span class="text-muted">-</span>'}</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="time-log">
+                                    <div class="time-display text-center">${safeClockOut || '<span class="badge bg-light text-primary border fw-normal">In Progress</span>'}</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="total-hours">
+                                    <div class="hours-display text-center">${safeHours} hrs</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="action-buttons d-flex justify-content-center">
+                                    <button class="btn btn-sm btn-outline-primary" data-log-id="${safeLogId}" title="View Details" hidden>
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning" data-log-id="${safeLogId}" title="Edit Log">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+
+                    tbody.appendChild(tr);
+                });
+            }
+
+            filterLogs();
+            updateLastUpdated();
         })
+        .catch(err => {
+            console.error('Failed to load daily logs:', err);
+            if (!hasExistingRows && tbody) {
+                tbody.innerHTML = `
+                    <tr class="empty-state-row">
+                        <td colspan="5" class="text-center py-4 text-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>Unable to load daily logs. Please check your network and refresh.
+                        </td>
+                    </tr>
+                `;
+            }
+        })
+        .finally(() => {
+            if (tableContainer) {
+                tableContainer.classList.remove('is-loading-data');
+            }
+        });
 }
 
-const tbody = document.getElementById('logsTableBody');
-tbody.addEventListener('click', e => {
-    const viewBtn = e.target.closest('.btn-outline-primary');
-    const editBtn = e.target.closest('.btn-outline-warning');
+function setupModalsAndActions() {
+    const tbody = document.getElementById('logsTableBody');
+    if (tbody) {
+        tbody.addEventListener('click', e => {
+            const editBtn = e.target.closest('.btn-outline-warning');
+            if (editBtn) {
+                const logId = editBtn.getAttribute('data-log-id');
+                const originalBtnHTML = editBtn.innerHTML;
+                editBtn.disabled = true;
+                editBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
 
-    if (editBtn) {
-        const logId = editBtn.getAttribute('data-log-id');
-        console.log('Edit clicked:', logId);
-        const originalBtnHTML = editBtn.innerHTML;
-        editBtn.disabled = true;
-        editBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+                fetch(`/api/get-user-log/${logId}`)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+                        return res.json();
+                    })
+                    .then(user => {
+                        document.getElementById('logId').value = user.log_id || '';
+                        document.getElementById('giaName').value = user.full_name || '';
+                        document.getElementById('editCheckIn').value = user.clock_in || '';
+                        document.getElementById('editCheckOut').value = user.clock_out || '';
+                        document.getElementById('editNotes').value = user.notes || '';
 
-        fetch(`/api/get-user-log/${logId}`)
-            .then(res => {
-                if (!res.ok) showAlert('error', res.status);
-                return res.json();
-            })
-            .then(user => {
-                document.getElementById('logId').value = user.log_id;
-                document.getElementById('giaName').value = user.full_name;
-                document.getElementById('editCheckIn').value = user.clock_in;
-                document.getElementById('editCheckOut').value = user.clock_out || '';
-                document.getElementById('editNotes').value = user.notes || '';
-
-                new bootstrap.Modal(document.getElementById('editLogModal')).show();
-            })
-            .catch(err => {
-                console.error("Failed to load user:", err.message);
-                showAlert('danger', "User log not found or error loading record.");
-            })
-            .finally(() => {
-                editBtn.disabled = false;
-                editBtn.innerHTML = originalBtnHTML;
-            });
+                        new bootstrap.Modal(document.getElementById('editLogModal')).show();
+                    })
+                    .catch(err => {
+                        console.error("Failed to load user log:", err);
+                        showAlert('danger', "User log not found or error loading record.");
+                    })
+                    .finally(() => {
+                        editBtn.disabled = false;
+                        editBtn.innerHTML = originalBtnHTML;
+                    });
+            }
+        });
     }
 
-    document.getElementById("saveLogChanges").addEventListener("click", function (e) {
-        const form = document.getElementById('editLogForm');
-        const logId = document.getElementById('logId').value;
+    const saveChangesBtn = document.getElementById("saveLogChanges");
+    if (saveChangesBtn) {
+        saveChangesBtn.addEventListener("click", function () {
+            const form = document.getElementById('editLogForm');
+            const logId = document.getElementById('logId').value;
 
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
 
-        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-        this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving...';
+            this.disabled = true;
 
-        const editedData = {
-            clockIn: document.getElementById('editCheckIn').value,
-            clockOut: document.getElementById('editCheckOut').value,
-            notes: document.getElementById('editNotes').value,
-        }
+            const editedData = {
+                clockIn: document.getElementById('editCheckIn').value,
+                clockOut: document.getElementById('editCheckOut').value,
+                notes: document.getElementById('editNotes').value,
+            };
 
-        // Send to backend
-        fetch(`/api/update-log/${logId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(editedData)
-        })
-            .then(res => res.json())
-            .then(data => {
-                this.innerHTML = '<i class="bi bi-save"></i> Save Changes';
-                this.disabled = false;
-
-                if (data.success) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editLogModal'));
-                    modal.hide();
-                    showAlert('success', data.message);
-                    loadLogs();
-                    filterLogs();
-                } else {
-                    showAlert('error', data.error || 'Failed to update attendance record');
-                    console.error('Error updating user:', data.error);
-                }
+            fetch(`/api/update-log/${logId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(editedData)
             })
-            .catch(err => {
-                this.innerHTML = '<i class="bi bi-save"></i> Save Changes';
-                this.disabled = false;
-                showAlert('error', err.message || err);
-                console.error('Fetch error:', err);
-            });
+                .then(res => res.json())
+                .then(data => {
+                    this.innerHTML = '<i class="bi bi-save"></i> Save Changes';
+                    this.disabled = false;
 
-    })
-
-    if (viewBtn) {
-        new bootstrap.Modal(document.getElementById('logDetailsModal')).show();
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editLogModal'));
+                        if (modal) modal.hide();
+                        showAlert('success', data.message || 'Log updated successfully!');
+                        loadLogs(true);
+                    } else {
+                        showAlert('error', data.error || 'Failed to update attendance record');
+                    }
+                })
+                .catch(err => {
+                    this.innerHTML = '<i class="bi bi-save"></i> Save Changes';
+                    this.disabled = false;
+                    showAlert('error', err.message || err);
+                });
+        });
     }
-
-});
+}
 
 // Search functionality
 function setupSearch() {
@@ -199,38 +262,38 @@ function setupFilters() {
 
     filters.forEach(filterId => {
         const filter = document.getElementById(filterId);
-        filter.addEventListener('change', filterLogs);
+        filter?.addEventListener('change', () => loadLogs(false));
     });
 
-    // Clear filters
-    document.getElementById('clearFilters').addEventListener('click', function () {
-        filters.forEach(filterId => {
-            if (filterId !== 'dateFilter') {
-                document.getElementById(filterId).value = '';
+    // Reset filters
+    const clearBtn = document.getElementById('clearFilters');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('dateFilter');
+            if (dateInput) {
+                dateInput.value = today;
             }
+            const searchInput = document.getElementById('logsSearch');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            loadLogs(false);
         });
-        document.getElementById('logsSearch').value = '';
-        filterLogs();
-
-        // Visual feedback
-        this.textContent = 'Cleared!';
-        setTimeout(() => {
-            this.innerHTML = '<i class="fas fa-times me-2"></i>Clear Filters';
-        }, 1000);
-    });
+    }
 }
 
 // Auto-refresh functionality
 function setupAutoRefresh() {
     const autoRefreshToggle = document.getElementById('autoRefresh');
     const refreshBtn = document.getElementById('refreshLogs');
-    let refreshInterval;
+    let refreshInterval = null;
 
     function startAutoRefresh() {
-        if (autoRefreshToggle.checked) {
+        stopAutoRefresh();
+        if (autoRefreshToggle && autoRefreshToggle.checked) {
             refreshInterval = setInterval(() => {
-                refreshLogs();
-                filterLogs();
+                loadLogs(true); // background silent update without clearing rows
             }, 30000); // Refresh every 30 seconds
         }
     }
@@ -238,62 +301,70 @@ function setupAutoRefresh() {
     function stopAutoRefresh() {
         if (refreshInterval) {
             clearInterval(refreshInterval);
+            refreshInterval = null;
         }
     }
 
-    autoRefreshToggle.addEventListener('change', function () {
-        if (this.checked) {
-            startAutoRefresh();
-            console.log('Auto-refresh enabled');
-        } else {
-            stopAutoRefresh();
-            console.log('Auto-refresh disabled');
-        }
-    });
+    if (autoRefreshToggle) {
+        autoRefreshToggle.addEventListener('change', function () {
+            if (this.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+    }
 
-    refreshBtn.addEventListener('click', function () {
-        refreshLogs();
-    });
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function () {
+            refreshLogs();
+        });
+    }
 
     // Start auto-refresh by default
     startAutoRefresh();
 }
 
-// Refresh logs function
+// Refresh logs function (manual button click)
 function refreshLogs() {
     const refreshBtn = document.getElementById('refreshLogs');
+    const originalHTML = refreshBtn ? refreshBtn.innerHTML : '';
 
-    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...';
-    refreshBtn.disabled = true;
+    if (refreshBtn) {
+        refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Refreshing...';
+        refreshBtn.disabled = true;
+    }
 
-    // Simulate API call
+    loadLogs(true);
+
     setTimeout(() => {
-        loadLogs();
-        refreshBtn.innerHTML = '<i class="fas fa-sync me-2"></i>Refresh';
-        refreshBtn.disabled = false;
-        updateLastUpdated();
-    }, 1500);
+        if (refreshBtn) {
+            refreshBtn.innerHTML = originalHTML || '<i class="bi bi-arrow-repeat"></i> <span>Refresh</span>';
+            refreshBtn.disabled = false;
+        }
+    }, 600);
 }
 
 // Filter logs based on search and filter criteria
 function filterLogs() {
-    const searchTerm = document.getElementById('logsSearch').value.toLowerCase();
-    const dateFilter = document.getElementById('dateFilter').value;
-    // const departmentFilter = document.getElementById('departmentFilter').value;
-    // const statusFilter = document.getElementById('statusFilter').value;
+    const searchInput = document.getElementById('logsSearch');
+    const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
-    const rows = document.querySelectorAll('#logsTableBody tr');
+    const tbody = document.getElementById('logsTableBody');
+    if (!tbody) return;
+
+    const rows = tbody.querySelectorAll('tr:not(.empty-state-row)');
+    if (rows.length === 0) return;
+
     let visibleCount = 0;
 
     rows.forEach(row => {
-        const employeeName = row.querySelector('.user-name').textContent.toLowerCase();
-        const employeeEmail = row.querySelector('.user-email').textContent.toLowerCase();
-        // const department = row.querySelector('.department-badge').textContent.toLowerCase();
-        // const status = row.querySelector('.status-badge').textContent.toLowerCase();
+        const nameEl = row.querySelector('.user-name');
+        const emailEl = row.querySelector('.user-email');
+        const employeeName = nameEl ? nameEl.textContent.toLowerCase() : '';
+        const employeeEmail = emailEl ? emailEl.textContent.toLowerCase() : '';
 
-        const matchesSearch = employeeName.includes(searchTerm) || employeeEmail.includes(searchTerm);
-        // const matchesDepartment = !departmentFilter || department === departmentFilter;
-        // const matchesStatus = !statusFilter || status.includes(statusFilter);
+        const matchesSearch = !searchTerm || employeeName.includes(searchTerm) || employeeEmail.includes(searchTerm);
 
         if (matchesSearch) {
             row.style.display = '';
@@ -302,6 +373,25 @@ function filterLogs() {
             row.style.display = 'none';
         }
     });
+
+    // Handle no matching search results
+    let searchEmptyRow = tbody.querySelector('.search-empty-row');
+    if (visibleCount === 0 && searchTerm) {
+        if (!searchEmptyRow) {
+            searchEmptyRow = document.createElement('tr');
+            searchEmptyRow.className = 'search-empty-row';
+            searchEmptyRow.innerHTML = `
+                <td colspan="5" class="text-center py-5 text-muted">
+                    <i class="bi bi-search fs-4 d-block mb-2 text-secondary"></i>
+                    <span class="fw-medium">No results match "${escapeHtml(searchTerm)}"</span>
+                </td>
+            `;
+            tbody.appendChild(searchEmptyRow);
+        }
+    } else if (searchEmptyRow) {
+        searchEmptyRow.remove();
+    }
+}
 
     // Update showing info
     const showingInfo = document.querySelector('.showing-info');
@@ -314,84 +404,11 @@ function filterLogs() {
     // showingInfo.textContent = `Showing 1-${visibleCount} of 248 employees for ${dateStr}`;
 }
 
-// Table interactions
-function setupTableInteractions() {
-    // View details buttons
-    const viewButtons = document.querySelectorAll('.action-buttons .btn-outline-primary');
-    viewButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const row = this.closest('tr');
-            const employeeName = row.querySelector('.user-name').textContent;
-
-            // Populate modal with employee data
-            populateLogDetailsModal(row);
-
-            const modal = new bootstrap.Modal(document.getElementById('logDetailsModal'));
-            modal.show();
-
-            console.log(`Viewing details for: ${employeeName}`);
-        });
-    });
-
-    // Edit log buttons
-    const editButtons = document.querySelectorAll('.action-buttons .btn-outline-warning');
-    editButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const row = this.closest('tr');
-            const employeeName = row.querySelector('.user-name').textContent;
-
-            // Populate edit modal with current data
-            populateEditLogModal(row);
-
-            const modal = new bootstrap.Modal(document.getElementById('editLogModal'));
-            modal.show();
-
-            console.log(`Editing log for: ${employeeName}`);
-        });
-    });
-
-    // Export button
-    const exportBtn = document.querySelector('.btn-outline-primary');
-    if (exportBtn && exportBtn.textContent.includes('Export')) {
-        exportBtn.addEventListener('click', function () {
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
-            this.disabled = true;
-
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-download me-1"></i>Export';
-                this.disabled = false;
-                showAlert('success', 'Logs exported successfuly');
-                console.log('Logs exported');
-            }, 2000);
-        });
-    }
-}
-
-// Populate log details modal
-function populateLogDetailsModal(row) {
-    const employeeName = row.querySelector('.user-name').textContent;
-    // const department = row.querySelector('.department-badge').textContent;
-    const checkIn = row.querySelector('.time-log .time-display').textContent;
-    const totalHours = row.querySelector('.total-hours .hours-display').textContent;
-    // const status = row.querySelector('.status-badge').textContent;
-
-    // Update modal content (simplified for demo)
-    const modal = document.getElementById('logDetailsModal');
-    modal.querySelector('.fw-medium').textContent = employeeName;
-    modal.querySelector('.text-muted').textContent = `${department} - Manager`;
-}
-
-// Populate edit log modal
-function populateEditLogModal(row) {
-    const employeeName = row.querySelector('.user-name').textContent;
-
-    // Update modal content (simplified for demo)
-    const modal = document.getElementById('editLogModal');
-    modal.querySelector('input[readonly]').value = employeeName;
-}
-
 // Update last updated timestamp
 function updateLastUpdated() {
+    const el = document.getElementById('lastUpdated');
+    if (!el) return;
+
     const now = new Date();
     const timeString = now.toLocaleTimeString('en-US', {
         hour: 'numeric',
@@ -399,34 +416,7 @@ function updateLastUpdated() {
         hour12: true
     });
 
-    document.getElementById('lastUpdated').textContent = timeString;
-}
-
-// Add interactive effects
-function addInteractiveEffects() {
-    // Table row hover effects
-    const tableRows = document.querySelectorAll('#logsTableBody tr');
-    tableRows.forEach(row => {
-        row.addEventListener('mouseenter', function () {
-            this.style.backgroundColor = '#f8f9fa';
-        });
-
-        row.addEventListener('mouseleave', function () {
-            this.style.backgroundColor = '';
-        });
-    });
-
-    // Status badge hover effects
-    // const statusBadges = document.querySelectorAll('.status-badge');
-    // statusBadges.forEach(badge => {
-    //     badge.addEventListener('mouseenter', function () {
-    //         this.style.transform = 'scale(1.05)';
-    //     });
-
-    //     badge.addEventListener('mouseleave', function () {
-    //         this.style.transform = '';
-    //     });
-    // });
+    el.textContent = timeString;
 }
 
 // Initialize when DOM is loaded
@@ -458,19 +448,10 @@ document.addEventListener('keydown', function (e) {
 document.addEventListener('visibilitychange', function () {
     const autoRefreshToggle = document.getElementById('autoRefresh');
 
-    if (document.hidden) {
-        console.log('Page hidden - pausing auto-refresh');
-    } else {
-        console.log('Page visible - resuming auto-refresh');
-        if (autoRefreshToggle.checked) {
-            refreshLogs();
-        }
+    if (!document.hidden && autoRefreshToggle && autoRefreshToggle.checked) {
+        loadLogs(true);
     }
 });
-
-document.getElementById("dateFilter").addEventListener("change", () => {
-    loadLogs();
-})
 
 // Add Manual Log button
 const addManualLogBtn = document.querySelector('.add-manual-log-btn');
