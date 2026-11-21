@@ -6,7 +6,7 @@ import traceback
 from datetime import date, datetime, time, timedelta
 
 import pandas as pd
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, current_app, jsonify, request, send_file
 from flask_login import current_user, login_required
 from sqlalchemy import func, or_
 
@@ -778,12 +778,20 @@ def update_log(log_id):
     log.clock_in = clock_in_time
     log.clock_out = clock_out_time
 
+    notes = (data.get("notes") or "").strip()
+
     try:
         db.session.commit()
         user_name = f"{log.user.first_name} {log.user.last_name}" if log.user else log.user_id
+        clock_in_str = clock_in_time.strftime("%H:%M")
+        clock_out_str = clock_out_time.strftime("%H:%M") if clock_out_time else "None"
+        detail_msg = f"#{log.id} Attendance record updated for {user_name} (In: {clock_in_str}, Out: {clock_out_str})."
+        if notes:
+            detail_msg += f" Reason: {notes}"
+
         system_log_entry(
             action="Updated",
-            details=f"#{log.id} Attendance record updated for {user_name}.",
+            details=detail_msg,
         )
         return jsonify({"success": True, "message": "Log updated successfully!"}), 200
     except Exception as e:
@@ -818,6 +826,7 @@ def add_log():
 
     clock_in_time = parse_time(clock_in_str)
     clock_out_time = parse_time(clock_out_str) if clock_out_str else None
+    notes = (data.get("notes") or "").strip()
 
     if not clock_in_time:
         return jsonify({"success": False, "error": "Invalid clockIn time format"}), 400
@@ -834,9 +843,15 @@ def add_log():
         db.session.add(new_log)
         db.session.commit()
 
+        clock_in_formatted = clock_in_time.strftime("%H:%M")
+        clock_out_formatted = clock_out_time.strftime("%H:%M") if clock_out_time else "None"
+        detail_msg = f"New manual attendance record added for {user.first_name} {user.last_name} on {record_date} (In: {clock_in_formatted}, Out: {clock_out_formatted})."
+        if notes:
+            detail_msg += f" Reason: {notes}"
+
         system_log_entry(
             action="Created",
-            details=f"New manual attendance record added for {user.first_name} {user.last_name}.",
+            details=detail_msg,
         )
         return jsonify({"success": True, "message": "Log added successfully!"}), 200
     except Exception as e:
@@ -1672,3 +1687,52 @@ def clock_out():
         db.session.rollback()
         logger.error(f"Clock-out Error: {traceback.format_exc()}")
         return jsonify({"success": False, "error": f"An error occurred: {e!s}"}), 500
+
+
+# ============================================================================
+# AUTOMATED CRON ENDPOINTS (for external triggers like cron-jobs.org)
+# ============================================================================
+@api_bp.route("/tasks/auto-clock-out-strict", methods=["GET", "POST"])
+def trigger_auto_clock_out_strict():
+    """Trigger auto fill of 8:30 clock-out for users on strict 4:30-8:30 weekday schedules.
+
+    Authentication:
+        - X-Cron-Key header, Authorization: Bearer <key>, or ?key=<key> query param.
+        - Must match current_app.config.get('CRON_SECRET_KEY') or Config.SECRET_KEY if not configured.
+        - Alternatively authenticated if current_user is admin/superadmin.
+    """
+    cron_key = (
+        request.headers.get("X-Cron-Key")
+        or request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+        or request.args.get("key", "").strip()
+    )
+
+    configured_key = current_app.config.get("CRON_SECRET_KEY") or current_app.config.get("SECRET_KEY")
+
+    is_authorized = False
+    if current_user.is_authenticated and current_user.role in ["superadmin", "admin"]:
+        is_authorized = True
+    elif configured_key and cron_key and cron_key == configured_key:
+        is_authorized = True
+
+    if not is_authorized:
+        return jsonify({"success": False, "error": "Unauthorized cron request."}), 401
+
+    from tasks import auto_clock_out_strict_shift
+
+    try:
+        updated_count = auto_clock_out_strict_shift()
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": f"Auto clock-out completed successfully. Updated {updated_count} record(s).",
+                    "updated_count": updated_count,
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        logger.error(f"Error executing auto_clock_out_strict_shift task: {e}")
+        return jsonify({"success": False, "error": f"Task execution failed: {e!s}"}), 500
+

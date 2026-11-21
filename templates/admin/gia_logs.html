@@ -37,7 +37,11 @@
                     <label for="giaSelector" class="form-label">Select Student Assistant (GIA)</label>
                     <select class="form-select fw-medium" id="giaSelector">
                         {% for gia in gia_users %}
-                        <option value="{{ gia.user_id }}" {% if gia.user_id == selected_user_id %}selected{% endif %}>
+                        <option value="{{ gia.user_id }}"
+                                data-name="{{ gia.first_name }} {{ gia.last_name }}"
+                                data-laboratory="{{ gia.laboratory or '' }}"
+                                data-status="{{ gia.status or 'inactive' }}"
+                                {% if gia.user_id == selected_user_id %}selected{% endif %}>
                             {{ gia.last_name }}, {{ gia.first_name }} ({{ gia.user_id }}) {% if gia.status != 'active' %}[Inactive]{% endif %}
                         </option>
                         {% endfor %}

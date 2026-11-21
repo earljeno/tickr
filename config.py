@@ -46,6 +46,9 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
 
+    # Cron / Webhook Secret Key for external automated runners (e.g. cron-jobs.org)
+    CRON_SECRET_KEY = os.getenv("CRON_SECRET_KEY")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

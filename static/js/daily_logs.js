@@ -11,37 +11,16 @@ function loadLogs(isBackground = false) {
     const dateFilter = dateInput ? dateInput.value : '';
 
     const queryDisplay = document.getElementById("queryDateDisplay");
-    if (queryDisplay && dateFilter) {
-        queryDisplay.textContent = dateFilter;
+    if (queryDisplay) {
+        queryDisplay.textContent = dateFilter || 'Today';
     }
 
     const tbody = document.getElementById('logsTableBody');
     const tableContainer = tbody ? tbody.closest('.table-responsive') : null;
     const hasExistingRows = tbody && tbody.querySelectorAll('tr').length > 0 && !tbody.querySelector('.spinner-border');
 
-    if (tableContainer) {
-        tableContainer.classList.add('table-loading-container');
-    }
-
-    if (isBackground && hasExistingRows) {
-        // Subtle non-intrusive refresh without wiping current rows
-        if (tableContainer) {
-            tableContainer.classList.add('is-loading-data');
-            let overlay = tableContainer.querySelector('.table-loading-overlay');
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.className = 'table-loading-overlay';
-                overlay.innerHTML = `
-                    <div class="table-loading-badge">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                        <span>Updating daily logs...</span>
-                    </div>
-                `;
-                tableContainer.appendChild(overlay);
-            }
-        }
-    } else {
-        // Initial / explicit full load: show spinner inside tbody
+    // On initial or explicit manual reload, show the table loading state
+    if (!isBackground || !hasExistingRows) {
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
@@ -105,7 +84,7 @@ function loadLogs(isBackground = false) {
                             </td>
                             <td>
                                 <div class="time-log">
-                                    <div class="time-display text-center">${safeClockOut || '<span class="badge bg-light text-primary border fw-normal">In Progress</span>'}</div>
+                                    <div class="time-display text-center">${safeClockOut || '<span class="text-muted">-</span>'}</div>
                                 </div>
                             </td>
                             <td>
@@ -142,11 +121,6 @@ function loadLogs(isBackground = false) {
                         </td>
                     </tr>
                 `;
-            }
-        })
-        .finally(() => {
-            if (tableContainer) {
-                tableContainer.classList.remove('is-loading-data');
             }
         });
 }
@@ -462,7 +436,8 @@ saveManualLogBtn.addEventListener('click', function () {
             userId: document.getElementById('addEmployee').value,
             date: document.getElementById('addLogDate').value,
             clockIn: document.getElementById('addTimeIn').value,
-            clockOut: document.getElementById('addTimeOut').value
+            clockOut: document.getElementById('addTimeOut').value,
+            notes: (document.getElementById('addNotes')?.value || '').trim()
         }
 
         this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';

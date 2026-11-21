@@ -80,12 +80,27 @@ function updateAssistantHeader() {
     if (!giaSelector) return;
     const selectedOption = giaSelector.options[giaSelector.selectedIndex];
     if (selectedOption) {
-        const text = selectedOption.textContent.trim();
         const userId = selectedOption.value;
+        const name = selectedOption.dataset.name || selectedOption.textContent.trim();
+        const lab = selectedOption.dataset.laboratory;
+        const status = (selectedOption.dataset.status || 'inactive').toLowerCase();
+
         const assistantFullName = document.getElementById('assistantFullName');
         const assistantUserId = document.getElementById('assistantUserId');
-        if (assistantFullName) assistantFullName.textContent = text;
+        const assistantLab = document.getElementById('assistantLab');
+        const assistantStatusBadge = document.getElementById('assistantStatusBadge');
+
+        if (assistantFullName) assistantFullName.textContent = name;
         if (assistantUserId) assistantUserId.textContent = userId;
+        if (assistantLab) assistantLab.textContent = lab ? `Room ${lab}` : 'Not Assigned';
+        if (assistantStatusBadge) {
+            assistantStatusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            if (status === 'active') {
+                assistantStatusBadge.className = 'badge bg-success-subtle text-success border border-success-subtle';
+            } else {
+                assistantStatusBadge.className = 'badge bg-secondary-subtle text-secondary border';
+            }
+        }
     }
 }
 
