@@ -393,17 +393,6 @@ function filterLogs() {
     }
 }
 
-    // Update showing info
-    const showingInfo = document.querySelector('.showing-info');
-    const selectedDate = document.getElementById('dateFilter').value;
-    const dateStr = selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    }) : 'today';
-    // showingInfo.textContent = `Showing 1-${visibleCount} of 248 employees for ${dateStr}`;
-}
-
 // Update last updated timestamp
 function updateLastUpdated() {
     const el = document.getElementById('lastUpdated');
