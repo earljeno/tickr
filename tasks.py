@@ -10,13 +10,12 @@ logger = logging.getLogger(__name__)
 
 def auto_clock_out_strict_shift(
     target_date: date | None = None,
-    schedule_start_candidates: tuple[time, ...] = (time(4, 30), time(16, 30)),
     clock_out_target: time = time(20, 30),
 ) -> int:
     """Auto fill clock_out to 20:30 (8:30 PM) for active shifts where clock_out is NULL
 
-    and the user has an applicable schedule for today matching 4:30 - 8:30 with strict schedule enabled.
-    Applies only on weekdays (Monday - Friday).
+    and the user has an applicable schedule for today with an end time of 8:30 PM (20:30)
+    under strict schedule mode. Applies only on weekdays (Monday - Friday).
 
     Returns:
         Number of attendance records updated.
@@ -85,20 +84,15 @@ def auto_clock_out_strict_shift(
             if getattr(sched, "is_open_time", False):
                 continue
 
-            # Primary shift check: end_time == 20:30 and start_time in candidate times (e.g. 04:30 or 16:30)
+            # Primary shift check: schedule end time is 20:30 (8:30 PM)
             if sched.end_time == clock_out_target:
-                if not sched.start_time or sched.start_time in schedule_start_candidates:
-                    is_matching_shift = True
-                    break
+                is_matching_shift = True
+                break
 
-            # Split shift second block check
+            # Split shift second block check: split schedule end time is 20:30 (8:30 PM)
             if sched.is_split_shift and sched.split_end_time == clock_out_target:
-                if (
-                    not sched.split_start_time
-                    or sched.split_start_time in schedule_start_candidates
-                ):
-                    is_matching_shift = True
-                    break
+                is_matching_shift = True
+                break
 
         if is_matching_shift:
             record.clock_out = clock_out_target
@@ -107,7 +101,7 @@ def auto_clock_out_strict_shift(
                 action="Auto Clock Out",
                 details=(
                     f"Auto-filled 8:30 clock-out for user {record.user_id} "
-                    f"under strict schedule (4:30-8:30) on {eval_date}."
+                    f"under strict schedule (scheduled end: 8:30 PM) on {eval_date}."
                 ),
                 user_id=record.user_id,
             )

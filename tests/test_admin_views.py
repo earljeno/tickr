@@ -102,12 +102,12 @@ def test_auto_clock_out_strict_shift_task(app):
         # Monday: 2026-11-23
         target_monday = date(2026, 11, 23)
 
-        # Set user schedule on Monday (mw) from 16:30 (4:30 PM) to 20:30 (8:30 PM)
+        # Set user schedule on Monday (mw) with any start time (e.g., 13:00 / 1:00 PM) and end time 20:30 (8:30 PM)
         sched = Schedule.query.filter_by(user_id="2024001", day="mw").first()
         if not sched:
             sched = Schedule(user_id="2024001", day="mw")
             db.session.add(sched)
-        sched.start_time = time(16, 30)
+        sched.start_time = time(13, 0)
         sched.end_time = time(20, 30)
         sched.is_open_time = False
 
@@ -115,7 +115,7 @@ def test_auto_clock_out_strict_shift_task(app):
         record = Attendance(
             user_id="2024001",
             date=target_monday,
-            clock_in=time(16, 30),
+            clock_in=time(13, 5),
             clock_out=None,
         )
         db.session.add(record)

@@ -1694,7 +1694,7 @@ def clock_out():
 # ============================================================================
 @api_bp.route("/tasks/auto-clock-out-strict", methods=["GET", "POST"])
 def trigger_auto_clock_out_strict():
-    """Trigger auto fill of 8:30 clock-out for users on strict 4:30-8:30 weekday schedules.
+    """Trigger auto fill of 8:30 clock-out for users whose schedule ends at 8:30 PM on weekdays.
 
     Authentication:
         - X-Cron-Key header, Authorization: Bearer <key>, or ?key=<key> query param.
